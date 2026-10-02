@@ -5,6 +5,7 @@ const { select, input } = require("@inquirer/prompts");
 const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const showSystemInfo = require("./utils/systemInfo");
+const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 
 const createEmptyProject = require("./templates/empty");
@@ -105,6 +106,10 @@ async function main() {
           value: "system",
         },
         {
+          name: "Settings",
+          value: "settings",
+        },
+        {
           name: "Exit",
           value: "exit",
         },
@@ -128,6 +133,10 @@ async function main() {
           message: "Press Enter to continue",
         });
 
+        break;
+
+      case "settings":
+        await openSettings();
         break;
 
       case "exit":
