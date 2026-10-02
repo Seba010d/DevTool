@@ -15,7 +15,7 @@ async function browseProjects(startPath) {
 
       if (isProject(entryPath)) {
         return {
-          name: `📦 ${entry.name}`,
+          name: `📦 ${entry.name} — ${entryPath}`,
           value: {
             type: "project",
             path: entryPath,

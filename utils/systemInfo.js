@@ -10,12 +10,11 @@ function getCommandVersion(command) {
   }
 }
 
-function showSystemInfo() {
+function showSystemInfo(projectLocation) {
   const nodeVersion = getCommandVersion("node --version");
   const npmVersion = getCommandVersion("npm --version");
 
-  const githubPath = `${process.env.HOME}/Github`;
-  const projects = scanProjects(githubPath);
+  const projects = scanProjects(projectLocation || os.homedir());
 
   console.log("");
   console.log("========================");

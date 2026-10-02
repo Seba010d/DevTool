@@ -5,20 +5,11 @@ const { select, input } = require("@inquirer/prompts");
 const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const showSystemInfo = require("./utils/systemInfo");
+const { loadConfig, saveConfig } = require("./utils/config");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
 const createBoilerplateProject = require("./templates/boilerplate");
-
-const configPath = path.join(__dirname, "config", "config.json");
-
-function loadConfig() {
-  return JSON.parse(fs.readFileSync(configPath, "utf8"));
-}
-
-function saveConfig(config) {
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-}
 
 async function createProject() {
   const config = loadConfig();
@@ -29,7 +20,7 @@ async function createProject() {
 
   console.log("");
 
-  const startLocation = config.lastProjectLocation || process.env.HOME;
+  const startLocation = config.lastProjectLocation;
 
   console.log("Choose project location:");
 
@@ -85,9 +76,8 @@ async function createProject() {
 }
 
 async function listProjects() {
-  const projectLocation = path.join(process.env.HOME, "Github");
-
-  await browseProjects(projectLocation);
+  const { lastProjectLocation } = loadConfig();
+  await browseProjects(lastProjectLocation);
 }
 
 async function main() {
@@ -132,7 +122,7 @@ async function main() {
         break;
 
       case "system":
-        showSystemInfo();
+        showSystemInfo(loadConfig().lastProjectLocation);
 
         await input({
           message: "Press Enter to continue",

@@ -27,9 +27,9 @@ function createBoilerplateProject(projectPath) {
 </html>
 `;
 
-  const cssContent = `/*# sourceMappingURL=style.css.map */`;
+  const cssContent = ``;
 
-  const jsContent = `import { saveData, loadData } from "./modules/localStorage.js";
+  const jsContent = `// Add your application code here.
 `;
 
   const localStorageContent = `const myDataName = "Data";

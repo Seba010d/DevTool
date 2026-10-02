@@ -2,34 +2,29 @@ const fs = require("fs");
 const path = require("path");
 const isProject = require("./projectDetector");
 
+const ignoredDirectories = new Set([
+  ".git", ".hg", ".svn", "node_modules", "bower_components", "vendor",
+  "dist", "build", "coverage", ".next", ".nuxt", ".output",
+  ".cache", ".expo", "Pods", "DerivedData", "__pycache__",
+]);
+
 function scanProjects(folderPath) {
-  if (!fs.existsSync(folderPath)) {
+  let entries;
+  try {
+    entries = fs.readdirSync(folderPath, { withFileTypes: true });
+  } catch {
     return [];
   }
-
-  const entries = fs.readdirSync(folderPath, {
-    withFileTypes: true,
-  });
-
   const projects = [];
-
   for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith(".")) {
-      continue;
-    }
-
+    if (!entry.isDirectory() || entry.name.startsWith(".") || ignoredDirectories.has(entry.name)) continue;
     const entryPath = path.join(folderPath, entry.name);
-
     if (isProject(entryPath)) {
       projects.push(entryPath);
       continue;
     }
-
-    const nestedProjects = scanProjects(entryPath);
-
-    projects.push(...nestedProjects);
+    projects.push(...scanProjects(entryPath));
   }
-
   return projects;
 }
 
