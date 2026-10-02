@@ -77,8 +77,9 @@ async function createProject() {
 }
 
 async function listProjects() {
-  const { lastProjectLocation } = loadConfig();
-  await browseProjects(lastProjectLocation);
+  const { projectsLocation } = loadConfig();
+
+  await browseProjects(projectsLocation);
 }
 
 async function main() {
@@ -127,7 +128,7 @@ async function main() {
         break;
 
       case "system":
-        showSystemInfo(loadConfig().lastProjectLocation);
+        showSystemInfo(loadConfig().projectsLocation);
 
         await input({
           message: "Press Enter to continue",
