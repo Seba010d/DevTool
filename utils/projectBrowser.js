@@ -14,9 +14,10 @@ async function browseProjects(startPath) {
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
     const choices = entries.map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
+      const project = isProject(entryPath);
       return {
-        name: `${isProject(entryPath) ? "📦" : "📁"} ${entry.name}`,
-        value: { type: isProject(entryPath) ? "project" : "folder", path: entryPath },
+        name: `${project ? "📦" : "📁"} ${entry.name}`,
+        value: { type: project ? "project" : "folder", path: entryPath },
       };
     });
 
@@ -28,7 +29,7 @@ async function browseProjects(startPath) {
     }
 
     const selected = await select({
-      message: `Projects — ${path.basename(currentPath) || "Projects"}`,
+      message: "Select a project or folder:",
       choices,
       loop: false,
     });
@@ -36,17 +37,21 @@ async function browseProjects(startPath) {
     if (selected.type === "search") {
       const query = (await input({ message: "Search project name:" })).trim().toLowerCase();
       if (!query) continue;
-      const matches = scanProjects(startPath).filter((item) =>
-        path.basename(item).toLowerCase().includes(query),
+      const matches = scanProjects(startPath).filter((projectPath) =>
+        path.basename(projectPath).toLowerCase().includes(query),
       );
       if (!matches.length) {
         console.log("No matching projects found.");
         continue;
       }
+
       const found = await select({
         message: "Search results:",
         choices: [
-          ...matches.map((item) => ({ name: `📦 ${path.basename(item)}`, value: item })),
+          ...matches.map((projectPath) => ({
+            name: `📦 ${path.basename(projectPath)}`,
+            value: projectPath,
+          })),
           { name: "← Back", value: null },
         ],
         loop: false,
