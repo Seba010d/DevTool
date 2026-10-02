@@ -11,6 +11,7 @@ const { loadConfig, saveConfig } = require("./utils/config");
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
 const createWebProject = require("./templates/web");
+const createBoilerplateProject = require("./templates/boilerplate");
 
 async function createProject() {
   const start = await select({
@@ -63,8 +64,18 @@ async function createProject() {
         name: "Node.js project",
         value: "node",
       },
-      { name: "Web", value: "web" },
-      { name: "Web + SCSS", value: "web-scss" },
+      {
+        name: "Web",
+        value: "web",
+      },
+      {
+        name: "Web + SCSS",
+        value: "web-scss",
+      },
+      {
+        name: "Boilerplate",
+        value: "boilerplate",
+      },
       {
         name: "← Cancel",
         value: "cancel",
@@ -90,8 +101,17 @@ async function createProject() {
     createNodeProject(projectPath);
   }
 
-  if (template === "web") createWebProject(projectPath, false);
-  if (template === "web-scss") createWebProject(projectPath, true);
+  if (template === "web") {
+    createWebProject(projectPath, false);
+  }
+
+  if (template === "web-scss") {
+    createWebProject(projectPath, true);
+  }
+
+  if (template === "boilerplate") {
+    createBoilerplateProject(projectPath);
+  }
 
   const devtoolConfig = {
     type: "project",
@@ -115,16 +135,19 @@ async function main() {
     await createProject();
     return;
   }
+
   if (process.argv[2] === "--help" || process.argv[2] === "-h") {
     console.log("Usage: devtool [create]");
     console.log("\nCommands:\n  create    Create a project directly");
     return;
   }
+
   if (process.argv[2]) {
     console.error(`Unknown command: ${process.argv[2]}`);
     process.exitCode = 1;
     return;
   }
+
   while (true) {
     console.clear();
 
@@ -179,6 +202,7 @@ async function main() {
 
 main().catch((error) => {
   if (error.name === "ExitPromptError") return;
+
   console.error(error.message);
   process.exitCode = 1;
 });
