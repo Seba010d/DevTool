@@ -45,19 +45,15 @@ async function openSettings() {
     if (answer === "last-project-location") {
       const config = loadConfig();
 
-      console.log("");
-      console.log(`Last project location: ${config.lastProjectLocation}`);
-      console.log("");
+      const newLocation = await chooseFolder(config.lastProjectLocation);
 
-      await select({
-        message: "Continue:",
-        choices: [
-          {
-            name: "← Back",
-            value: "back",
-          },
-        ],
-      });
+      config.lastProjectLocation = newLocation;
+
+      saveConfig(config);
+
+      console.log("");
+      console.log(`Last project location changed to: ${newLocation}`);
+      console.log("");
     }
   }
 }

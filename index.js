@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
 const { select, input } = require("@inquirer/prompts");
@@ -10,9 +11,28 @@ const { loadConfig, saveConfig } = require("./utils/config");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
-const createBoilerplateProject = require("./templates/boilerplate");
+const createWebProject = require("./templates/web");
 
 async function createProject() {
+  const start = await select({
+    message: "Create project:",
+    choices: [
+      {
+        name: "Continue",
+        value: "continue",
+      },
+      {
+        name: "← Cancel",
+        value: "cancel",
+      },
+    ],
+    loop: false,
+  });
+
+  if (start === "cancel") {
+    return;
+  }
+
   const config = loadConfig();
 
   const projectName = await input({
@@ -27,12 +47,11 @@ async function createProject() {
 
   const projectLocation = await chooseFolder(startLocation);
 
-  config.lastProjectLocation = projectLocation;
-  saveConfig(config);
+  if (!projectLocation) {
+    return;
+  }
 
   const projectPath = path.join(projectLocation, projectName);
-
-  fs.mkdirSync(projectPath);
 
   const template = await select({
     message: "Choose a project template:",
@@ -45,13 +64,24 @@ async function createProject() {
         name: "Node.js project",
         value: "node",
       },
+      { name: "Web", value: "web" },
+      { name: "Web + SCSS", value: "web-scss" },
       {
-        name: "Boilerplate",
-        value: "boilerplate",
+        name: "← Cancel",
+        value: "cancel",
       },
     ],
     loop: false,
   });
+
+  if (template === "cancel") {
+    return;
+  }
+
+  config.lastProjectLocation = projectLocation;
+  saveConfig(config);
+
+  fs.mkdirSync(projectPath);
 
   if (template === "empty") {
     createEmptyProject(projectPath);
@@ -61,9 +91,8 @@ async function createProject() {
     createNodeProject(projectPath);
   }
 
-  if (template === "boilerplate") {
-    createBoilerplateProject(projectPath);
-  }
+  if (template === "web") createWebProject(projectPath, false);
+  if (template === "web-scss") createWebProject(projectPath, true);
 
   const devtoolConfig = {
     type: "project",
@@ -83,6 +112,20 @@ async function listProjects() {
 }
 
 async function main() {
+  if (process.argv[2] === "create") {
+    await createProject();
+    return;
+  }
+  if (process.argv[2] === "--help" || process.argv[2] === "-h") {
+    console.log("Usage: devtool [create]");
+    console.log("\nCommands:\n  create    Create a project directly");
+    return;
+  }
+  if (process.argv[2]) {
+    console.error(`Unknown command: ${process.argv[2]}`);
+    process.exitCode = 1;
+    return;
+  }
   while (true) {
     console.clear();
 
@@ -148,4 +191,8 @@ async function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  if (error.name === "ExitPromptError") return;
+  console.error(error.message);
+  process.exitCode = 1;
+});

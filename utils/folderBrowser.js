@@ -18,6 +18,11 @@ async function chooseFolder(startPath) {
       value: "__select__",
     });
 
+    choices.push({
+      name: "← Cancel",
+      value: "__cancel__",
+    });
+
     const parentPath = path.dirname(currentPath);
 
     if (parentPath !== currentPath) {
@@ -35,6 +40,10 @@ async function chooseFolder(startPath) {
 
     if (selected === "__select__") {
       return currentPath;
+    }
+
+    if (selected === "__cancel__") {
+      return null;
     }
 
     if (selected === "__back__") {

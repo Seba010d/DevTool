@@ -1,14 +1,21 @@
 {
   "name": "devtool",
   "version": "1.0.0",
-  "description": "",
+  "description": "A command-line developer toolbox",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "bin": {
+    "devtool": "./index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "developer",
+    "cli",
+    "toolbox"
+  ],
+  "author": "Sebastian A. Christiansen",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@inquirer/prompts": "^8.7.2"
