@@ -13,6 +13,20 @@ const createNodeProject = require("./templates/node");
 const createWebProject = require("./templates/web");
 const createBoilerplateProject = require("./templates/boilerplate");
 
+function getDanishDateTime() {
+  return new Intl.DateTimeFormat("da-DK", {
+    timeZone: "Europe/Copenhagen",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date())
+    .replace(",", "");
+}
+
 async function createProject() {
   const start = await select({
     message: "Create project:",
@@ -141,7 +155,7 @@ async function createProject() {
     type: "project",
     template,
     projectType: projectTypes[template],
-    created: new Date().toISOString(),
+    created: getDanishDateTime(),
     run: runCommands[template],
   };
 
