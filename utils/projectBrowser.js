@@ -44,7 +44,7 @@ async function browseProjects(startPath) {
       let name = `${project ? "📦" : "📁"} ${entry.name}`;
 
       if (config?.projectType) {
-        name += ` ${config.projectType}`;
+        name += ` [${config.projectType}]`;
       }
 
       return {
@@ -106,7 +106,11 @@ async function browseProjects(startPath) {
 
       if (!matches.length) {
         info("No matching projects found.");
-        await input({ message: "Press Enter to continue" });
+
+        await input({
+          message: "Press Enter to continue",
+        });
+
         continue;
       }
 
@@ -123,7 +127,7 @@ async function browseProjects(startPath) {
             let name = `📦 ${path.basename(projectPath)}`;
 
             if (config?.projectType) {
-              name += ` ${config.projectType}`;
+              name += ` [${config.projectType}]`;
             }
 
             return {
