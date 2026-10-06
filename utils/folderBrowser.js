@@ -1,6 +1,11 @@
+// utils/folderBrowser.js
 const fs = require("fs");
 const path = require("path");
 const { select } = require("@inquirer/prompts");
+
+function isDevToolProject(folderPath) {
+  return fs.existsSync(path.join(folderPath, ".devtool.json"));
+}
 
 async function chooseFolder(startPath) {
   let currentPath = startPath;
@@ -8,10 +13,15 @@ async function chooseFolder(startPath) {
   while (true) {
     const entries = fs.readdirSync(currentPath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
 
-    const choices = entries.map((entry) => ({
-      name: `📁 ${entry.name}`,
-      value: path.join(currentPath, entry.name),
-    }));
+    const choices = entries.map((entry) => {
+      const entryPath = path.join(currentPath, entry.name);
+      const isProject = isDevToolProject(entryPath);
+
+      return {
+        name: `${isProject ? "📦" : "📁"} ${entry.name}`,
+        value: entryPath,
+      };
+    });
 
     choices.push({
       name: "✓ Select this folder",
