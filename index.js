@@ -7,6 +7,7 @@ const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
+const { drawHeader, drawFooter } = require("./utils/ui");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -30,6 +31,10 @@ function getDanishDateTime() {
 }
 
 async function createProject() {
+  console.clear();
+
+  drawHeader("DEVTOOL / CREATE PROJECT", "Create a new project");
+
   const start = await select({
     message: "Create project:",
     choices: [
@@ -63,11 +68,7 @@ async function createProject() {
 
   console.log("");
 
-  const startLocation = config.lastProjectLocation;
-
-  console.log("Choose project location:");
-
-  const projectLocation = await chooseFolder(startLocation);
+  const projectLocation = await chooseFolder(config.lastProjectLocation);
 
   if (!projectLocation) {
     return;
@@ -195,6 +196,8 @@ async function createProject() {
 }
 
 async function listProjects() {
+  console.clear();
+
   const { projectsLocation } = loadConfig();
 
   await browseProjects(projectsLocation);
@@ -221,10 +224,7 @@ async function main() {
   while (true) {
     console.clear();
 
-    console.log("========================");
-    console.log("        DEVTOOL");
-    console.log("========================");
-    console.log("");
+    drawHeader("DEVTOOL", "Developer Toolbox");
 
     const answer = await select({
       message: "What do you want to do?",
@@ -263,8 +263,9 @@ async function main() {
         break;
 
       case "exit":
-        console.log("");
-        console.log("Goodbye!");
+        console.clear();
+        drawHeader("DEVTOOL", "Developer Toolbox");
+        drawFooter("Goodbye!");
         return;
     }
   }
