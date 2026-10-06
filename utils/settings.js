@@ -1,9 +1,8 @@
-const { select } = require("@inquirer/prompts");
+const { select, input } = require("@inquirer/prompts");
 
 const chooseFolder = require("./folderBrowser");
 const { loadConfig, saveConfig, clearRecentProjects, resetConfig } = require("./config");
-
-const { drawHeader, drawFooter, success } = require("./ui");
+const { drawHeader, success, info } = require("./ui");
 
 async function openSettings() {
   while (true) {
@@ -11,10 +10,10 @@ async function openSettings() {
 
     const config = loadConfig();
 
-    drawHeader("DEVTOOL / SETTINGS", "Configure DevTool");
+    drawHeader("DEVTOOL / SETTINGS", "Configuration");
 
     const answer = await select({
-      message: "Settings:",
+      message: "Select setting:",
       choices: [
         {
           name: `Projects location  ${config.projectsLocation}`,
@@ -45,8 +44,6 @@ async function openSettings() {
     }
 
     if (answer === "projects-location") {
-      const config = loadConfig();
-
       const newLocation = await chooseFolder(config.projectsLocation);
 
       if (!newLocation) {
@@ -54,19 +51,19 @@ async function openSettings() {
       }
 
       config.projectsLocation = newLocation;
-
       saveConfig(config);
 
+      console.clear();
+      drawHeader("DEVTOOL / SETTINGS", "Projects location");
+
+      success("Projects location updated.");
       console.log("");
+      info(newLocation);
 
-      success(`Projects location changed to: ${newLocation}`);
-
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await input({ message: "Press Enter to continue" });
     }
 
     if (answer === "last-project-location") {
-      const config = loadConfig();
-
       const newLocation = await chooseFolder(config.lastProjectLocation);
 
       if (!newLocation) {
@@ -74,24 +71,27 @@ async function openSettings() {
       }
 
       config.lastProjectLocation = newLocation;
-
       saveConfig(config);
 
+      console.clear();
+      drawHeader("DEVTOOL / SETTINGS", "Last project location");
+
+      success("Last project location updated.");
       console.log("");
+      info(newLocation);
 
-      success(`Last project location changed to: ${newLocation}`);
-
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await input({ message: "Press Enter to continue" });
     }
 
     if (answer === "clear-recent") {
       clearRecentProjects();
 
-      console.log("");
+      console.clear();
+      drawHeader("DEVTOOL / SETTINGS", "Recent projects");
 
       success("Recent projects cleared.");
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await input({ message: "Press Enter to continue" });
     }
 
     if (answer === "reset") {
@@ -116,11 +116,12 @@ async function openSettings() {
 
       resetConfig();
 
-      console.log("");
+      console.clear();
+      drawHeader("DEVTOOL / SETTINGS", "Configuration");
 
       success("Settings reset.");
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await input({ message: "Press Enter to continue" });
     }
   }
 }

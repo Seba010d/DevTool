@@ -1,7 +1,7 @@
-// utils/folderBrowser.js
 const fs = require("fs");
 const path = require("path");
 const { select } = require("@inquirer/prompts");
+const { drawHeader } = require("./ui");
 
 function isDevToolProject(folderPath) {
   return fs.existsSync(path.join(folderPath, ".devtool.json"));
@@ -11,7 +11,15 @@ async function chooseFolder(startPath) {
   let currentPath = startPath;
 
   while (true) {
-    const entries = fs.readdirSync(currentPath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+    console.clear();
+
+    drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
+
+    const entries = fs
+      .readdirSync(currentPath, {
+        withFileTypes: true,
+      })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
 
     const choices = entries.map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
@@ -28,11 +36,6 @@ async function chooseFolder(startPath) {
       value: "__select__",
     });
 
-    choices.push({
-      name: "← Cancel",
-      value: "__cancel__",
-    });
-
     const parentPath = path.dirname(currentPath);
 
     if (parentPath !== currentPath) {
@@ -42,8 +45,13 @@ async function chooseFolder(startPath) {
       });
     }
 
+    choices.push({
+      name: "✕ Cancel",
+      value: "__cancel__",
+    });
+
     const selected = await select({
-      message: `Current folder: ${currentPath}`,
+      message: "Select:",
       choices,
       loop: false,
     });

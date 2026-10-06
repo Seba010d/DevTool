@@ -1,15 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
+const { success, error } = require("./ui");
 
 function runProject(projectPath) {
   const packagePath = path.join(projectPath, "package.json");
   const devtoolPath = path.join(projectPath, ".devtool.json");
 
   if (!fs.existsSync(packagePath)) {
-    console.log("");
-    console.log("No package.json found.");
-    console.log("");
+    error("No package.json found.");
     return;
   }
 
@@ -28,9 +27,7 @@ function runProject(projectPath) {
   const runCommand = devtoolConfig.run || (packageJson.scripts?.start ? "npm start" : null);
 
   if (!runCommand) {
-    console.log("");
-    console.log("No run command found.");
-    console.log("");
+    error("No run command found.");
     return;
   }
 
@@ -48,12 +45,13 @@ function runProject(projectPath) {
     new window with configuration cfg
   end tell'`;
 
-  exec(command, (error) => {
-    if (error) {
-      console.log("");
-      console.log(`Could not start ${projectName}.`);
-      console.log("");
+  exec(command, (errorObject) => {
+    if (errorObject) {
+      error(`Could not start ${projectName}.`);
+      return;
     }
+
+    success(`Started ${projectName}.`);
   });
 }
 

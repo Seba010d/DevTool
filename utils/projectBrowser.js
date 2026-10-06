@@ -5,6 +5,7 @@ const { select, input } = require("@inquirer/prompts");
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
+const { drawHeader, info } = require("./ui");
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -24,6 +25,10 @@ async function browseProjects(startPath) {
   let currentPath = startPath;
 
   while (true) {
+    console.clear();
+
+    drawHeader("DEVTOOL / PROJECTS", path.relative(process.env.HOME || "", currentPath) || currentPath);
+
     const entries = fs
       .readdirSync(currentPath, {
         withFileTypes: true,
@@ -39,7 +44,7 @@ async function browseProjects(startPath) {
       let name = `${project ? "📦" : "📁"} ${entry.name}`;
 
       if (config?.projectType) {
-        name += ` (${config.projectType})`;
+        name += ` ${config.projectType}`;
       }
 
       return {
@@ -51,14 +56,14 @@ async function browseProjects(startPath) {
       };
     });
 
-    if (currentPath === startPath) {
-      choices.unshift({
-        name: "Search projects",
-        value: {
-          type: "search",
-        },
-      });
+    choices.push({
+      name: "⌕ Search projects",
+      value: {
+        type: "search",
+      },
+    });
 
+    if (currentPath === startPath) {
       choices.push({
         name: "← Back to main menu",
         value: {
@@ -75,15 +80,19 @@ async function browseProjects(startPath) {
     }
 
     const selected = await select({
-      message: `Current folder: ${currentPath}`,
+      message: "Select:",
       choices,
       loop: false,
     });
 
     if (selected.type === "search") {
+      console.clear();
+
+      drawHeader("DEVTOOL / SEARCH", "Search projects");
+
       const query = (
         await input({
-          message: "Search project name:",
+          message: "Project name:",
         })
       )
         .trim()
@@ -96,12 +105,17 @@ async function browseProjects(startPath) {
       const matches = scanProjects(startPath).filter((projectPath) => path.basename(projectPath).toLowerCase().includes(query));
 
       if (!matches.length) {
-        console.log("No matching projects found.");
+        info("No matching projects found.");
+        await input({ message: "Press Enter to continue" });
         continue;
       }
 
+      console.clear();
+
+      drawHeader("DEVTOOL / SEARCH", `${matches.length} result${matches.length === 1 ? "" : "s"}`);
+
       const found = await select({
-        message: "Search results:",
+        message: "Select:",
         choices: [
           ...matches.map((projectPath) => {
             const config = loadProjectConfig(projectPath);
@@ -109,7 +123,7 @@ async function browseProjects(startPath) {
             let name = `📦 ${path.basename(projectPath)}`;
 
             if (config?.projectType) {
-              name += ` (${config.projectType})`;
+              name += ` ${config.projectType}`;
             }
 
             return {

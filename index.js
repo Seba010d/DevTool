@@ -7,7 +7,7 @@ const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
-const { drawHeader, drawFooter } = require("./utils/ui");
+const { drawHeader, drawFooter, success, error } = require("./utils/ui");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -33,7 +33,7 @@ function getDanishDateTime() {
 async function createProject() {
   console.clear();
 
-  drawHeader("DEVTOOL / CREATE PROJECT", "Create a new project");
+  drawHeader("DEVTOOL / CREATE", "Create a new project");
 
   const start = await select({
     message: "Create project:",
@@ -54,8 +54,6 @@ async function createProject() {
     return;
   }
 
-  const config = loadConfig();
-
   const projectName = (
     await input({
       message: "Project name:",
@@ -66,7 +64,7 @@ async function createProject() {
     return;
   }
 
-  console.log("");
+  const config = loadConfig();
 
   const projectLocation = await chooseFolder(config.lastProjectLocation);
 
@@ -77,9 +75,12 @@ async function createProject() {
   const projectPath = path.join(projectLocation, projectName);
 
   if (fs.existsSync(projectPath)) {
-    console.log("");
-    console.log(`A project named "${projectName}" already exists.`);
-    console.log("");
+    error(`A project named "${projectName}" already exists.`);
+
+    await input({
+      message: "Press Enter to continue",
+    });
+
     return;
   }
 
@@ -190,9 +191,18 @@ async function createProject() {
 
   fs.writeFileSync(path.join(projectPath, ".devtool.json"), JSON.stringify(devtoolConfig, null, 2) + "\n");
 
+  console.clear();
+
+  drawHeader("DEVTOOL / CREATE", "Project created");
+
+  success(`Created ${projectName}`);
+
   console.log("");
-  console.log(`Project created: ${projectPath}`);
-  console.log("");
+  console.log(`  ${projectPath}`);
+
+  await input({
+    message: "Press Enter to continue",
+  });
 }
 
 async function listProjects() {
@@ -211,12 +221,15 @@ async function main() {
 
   if (process.argv[2] === "--help" || process.argv[2] === "-h") {
     console.log("Usage: devtool [create]");
-    console.log("\nCommands:\n  create    Create a project directly");
+    console.log("");
+    console.log("Commands:");
+    console.log("  create    Create a project directly");
     return;
   }
 
   if (process.argv[2]) {
     console.error(`Unknown command: ${process.argv[2]}`);
+
     process.exitCode = 1;
     return;
   }
@@ -249,30 +262,34 @@ async function main() {
       loop: false,
     });
 
-    switch (answer) {
-      case "create":
-        await createProject();
-        break;
+    if (answer === "create") {
+      await createProject();
+    }
 
-      case "list":
-        await listProjects();
-        break;
+    if (answer === "list") {
+      await listProjects();
+    }
 
-      case "settings":
-        await openSettings();
-        break;
+    if (answer === "settings") {
+      await openSettings();
+    }
 
-      case "exit":
-        console.clear();
-        drawHeader("DEVTOOL", "Developer Toolbox");
-        drawFooter("Goodbye!");
-        return;
+    if (answer === "exit") {
+      console.clear();
+
+      drawHeader("DEVTOOL", "Developer Toolbox");
+
+      drawFooter("Goodbye!");
+
+      return;
     }
   }
 }
 
 main().catch((error) => {
-  if (error.name === "ExitPromptError") return;
+  if (error.name === "ExitPromptError") {
+    return;
+  }
 
   console.error(error.message);
   process.exitCode = 1;

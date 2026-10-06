@@ -1,8 +1,14 @@
 const { colors } = require("./colors");
 
-function drawHeader(title, subtitle = "") {
+function getWidth() {
   const columns = process.stdout.columns || 80;
-  const width = Math.max(50, columns);
+  return Math.max(50, columns);
+}
+
+function drawHeader(title, subtitle = "") {
+  const width = getWidth();
+
+  console.clear();
 
   console.log(`${colors.brightCyan}╭${"─".repeat(width - 2)}╮${colors.reset}`);
 
@@ -22,10 +28,10 @@ function drawHeader(title, subtitle = "") {
 }
 
 function drawSection(title) {
-  const columns = process.stdout.columns || 80;
-  const width = Math.max(50, columns);
+  const width = getWidth();
+  const lineLength = Math.max(0, width - title.length - 5);
 
-  console.log(`${colors.gray}┌─ ${title} ${"─".repeat(Math.max(0, width - title.length - 5))}┐${colors.reset}`);
+  console.log(`${colors.gray}┌─ ${title} ${"─".repeat(lineLength)}┐${colors.reset}`);
 }
 
 function drawFooter(text = "DevTool") {
