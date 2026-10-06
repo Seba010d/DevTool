@@ -5,8 +5,8 @@ const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
-const { addRecentProject, loadConfig, saveConfig } = require("./config");
-const { drawHeader, drawFooter, success, error, info } = require("./ui");
+const { addRecentProject, loadConfig } = require("./config");
+const { drawHeader, success, error, info } = require("./ui");
 
 function getProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -43,11 +43,11 @@ async function openMenu(projectPath) {
           value: "finder",
         },
         {
-          name: "⌨️   Ghostty",
+          name: "⌨️  Ghostty",
           value: "terminal",
         },
         {
-          name: "←  Back",
+          name: "←   Back",
           value: "back",
         },
       ],
@@ -132,7 +132,7 @@ async function runMenu(projectPath) {
 
     const choices = [
       {
-        name: "▶️   Run project",
+        name: "▶   Run project",
         value: "run",
       },
     ];
@@ -145,7 +145,7 @@ async function runMenu(projectPath) {
     }
 
     choices.push({
-      name: "←  Back",
+      name: "←   Back",
       value: "back",
     });
 
@@ -358,11 +358,11 @@ async function manageMenu(projectPath) {
       message: "Select:",
       choices: [
         {
-          name: "ℹ️   Project information",
+          name: "ℹ   Project information",
           value: "info",
         },
         {
-          name: "✏️   Rename project",
+          name: "✏   Rename project",
           value: "rename",
         },
         {
@@ -370,11 +370,11 @@ async function manageMenu(projectPath) {
           value: "move",
         },
         {
-          name: "🗑️   Delete project",
+          name: "🗑   Delete project",
           value: "delete",
         },
         {
-          name: "←  Back",
+          name: "←   Back",
           value: "back",
         },
       ],
@@ -432,7 +432,7 @@ async function projectActions(projectPath) {
           value: "open",
         },
         {
-          name: "▶️   Run",
+          name: "▶   Run",
           value: "run",
         },
         {
@@ -440,7 +440,7 @@ async function projectActions(projectPath) {
           value: "manage",
         },
         {
-          name: "←  Back",
+          name: "←   Back",
           value: "back",
         },
       ],
