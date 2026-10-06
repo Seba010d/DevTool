@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { select, input } = require("@inquirer/prompts");
 const { execFile, spawn } = require("child_process");
+
+const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
 
 function openApp(app, args, cwd) {
@@ -11,14 +13,14 @@ function openApp(app, args, cwd) {
   });
 }
 
-async function editProject(projectPath) {
+async function openMenu(projectPath) {
   while (true) {
-    const projectName = path.basename(projectPath);
-
     const choice = await select({
-      message: `Edit ${projectName}:`,
+      message: "Open:",
       choices: [
-        { name: "Project template", value: "template" },
+        { name: "Open in VS Code", value: "vscode" },
+        { name: "Open in Finder", value: "finder" },
+        { name: "Open in Ghostty", value: "terminal" },
         { name: "← Go back", value: "back" },
       ],
       loop: false,
@@ -26,95 +28,37 @@ async function editProject(projectPath) {
 
     if (choice === "back") return;
 
-    if (choice === "template") {
-      let config = {};
+    if (choice === "finder") {
+      openApp("open", [projectPath], projectPath);
+    }
 
-      try {
-        config = JSON.parse(fs.readFileSync(path.join(projectPath, ".devtool.json"), "utf8"));
-      } catch {
-        config = {};
-      }
+    if (choice === "vscode") {
+      openApp("code", [projectPath], projectPath);
+    }
 
-      const template = await select({
-        message: "Project template:",
-        choices: [
-          { name: "Empty project", value: "empty" },
-          { name: "Node.js project", value: "node" },
-          { name: "Web", value: "web" },
-          { name: "Web + SCSS", value: "web-scss" },
-          { name: "Boilerplate", value: "boilerplate" },
-          { name: "← Cancel", value: "cancel" },
-        ],
-        loop: false,
-      });
-
-      if (template === "cancel") continue;
-
-      config.template = template;
-
-      fs.writeFileSync(path.join(projectPath, ".devtool.json"), JSON.stringify(config, null, 2));
-
-      console.log("");
-      console.log(`Project template changed to: ${template}`);
-      console.log("");
+    if (choice === "terminal") {
+      openApp("open", ["-a", "Ghostty", projectPath], projectPath);
     }
   }
 }
 
-async function projectActions(projectPath) {
+async function runMenu(projectPath) {
   while (true) {
-    const projectName = path.basename(projectPath);
+    const choices = [{ name: "Run project", value: "run" }, ...(fs.existsSync(path.join(projectPath, "package.json")) ? [{ name: "Install dependencies", value: "install" }] : []), { name: "← Go back", value: "back" }];
 
-    const actions = [{ name: "Open in VS Code", value: "vscode" }, { name: "Open in Finder", value: "finder" }, { name: "Open in Ghostty", value: "terminal" }, { name: "Run project", value: "run" }, ...(fs.existsSync(path.join(projectPath, "package.json")) ? [{ name: "Install dependencies", value: "install" }] : []), { name: "Project information", value: "info" }, { name: "Rename project", value: "rename" }, { name: "Edit project", value: "edit" }, { name: "Delete project", value: "delete" }, { name: "← Go back", value: "back" }];
-
-    const action = await select({
-      message: `What do you want to do with ${projectName}?`,
-      choices: actions,
+    const choice = await select({
+      message: "Run:",
+      choices,
       loop: false,
     });
 
-    if (action === "back") return;
+    if (choice === "back") return;
 
-    if (action === "finder") {
-      openApp("open", [projectPath], projectPath);
-    }
-
-    if (action === "vscode") {
-      openApp("code", [projectPath], projectPath);
-    }
-
-    if (action === "terminal") {
-      openApp("open", ["-a", "Ghostty", projectPath], projectPath);
-    }
-
-    if (action === "run") {
+    if (choice === "run") {
       runProject(projectPath);
     }
 
-    if (action === "edit") {
-      await editProject(projectPath);
-    }
-
-    if (action === "info") {
-      let pkg = {};
-      let meta = {};
-
-      try {
-        pkg = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
-      } catch {}
-
-      try {
-        meta = JSON.parse(fs.readFileSync(path.join(projectPath, ".devtool.json"), "utf8"));
-      } catch {}
-
-      const dependencies = Object.keys(pkg.dependencies || {});
-
-      console.log(`\nName: ${projectName}\nTemplate: ${meta.template || "Unknown"}\nDependencies: ${dependencies.length ? dependencies.join(", ") : "None listed"}\n`);
-
-      await input({ message: "Press Enter to continue" });
-    }
-
-    if (action === "install") {
+    if (choice === "install") {
       const child = spawn("npm", ["install"], {
         cwd: projectPath,
         stdio: "inherit",
@@ -130,8 +74,48 @@ async function projectActions(projectPath) {
 
       await input({ message: "Press Enter to continue" });
     }
+  }
+}
 
-    if (action === "rename") {
+async function manageMenu(projectPath) {
+  while (true) {
+    const choice = await select({
+      message: "Manage:",
+      choices: [
+        { name: "Project information", value: "info" },
+        { name: "Rename project", value: "rename" },
+        { name: "Move project", value: "move" },
+        { name: "Delete project", value: "delete" },
+        { name: "← Go back", value: "back" },
+      ],
+      loop: false,
+    });
+
+    if (choice === "back") return;
+
+    if (choice === "info") {
+      let pkg = {};
+      let meta = {};
+
+      try {
+        pkg = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
+      } catch {}
+
+      try {
+        meta = JSON.parse(fs.readFileSync(path.join(projectPath, ".devtool.json"), "utf8"));
+      } catch {}
+
+      const projectName = path.basename(projectPath);
+      const dependencies = Object.keys(pkg.dependencies || {});
+
+      console.log(`\nName: ${projectName}\nTemplate: ${meta.template || "Unknown"}\nDependencies: ${dependencies.length ? dependencies.join(", ") : "None listed"}\n`);
+
+      await input({ message: "Press Enter to continue" });
+    }
+
+    if (choice === "rename") {
+      const projectName = path.basename(projectPath);
+
       const name = (
         await input({
           message: "New project name:",
@@ -154,7 +138,39 @@ async function projectActions(projectPath) {
       projectPath = destination;
     }
 
-    if (action === "delete") {
+    if (choice === "move") {
+      const projectName = path.basename(projectPath);
+      const currentParent = path.dirname(projectPath);
+
+      console.log("");
+
+      const newLocation = await chooseFolder(currentParent);
+
+      if (!newLocation) {
+        continue;
+      }
+
+      if (newLocation === currentParent) {
+        console.log("\nProject is already in that folder.");
+        continue;
+      }
+
+      const destination = path.join(newLocation, projectName);
+
+      if (fs.existsSync(destination)) {
+        console.log(`\nA project named "${projectName}" already exists there.`);
+        continue;
+      }
+
+      fs.renameSync(projectPath, destination);
+      projectPath = destination;
+
+      console.log(`\nProject moved to: ${projectPath}`);
+    }
+
+    if (choice === "delete") {
+      const projectName = path.basename(projectPath);
+
       const confirmation = await select({
         message: `Delete "${projectName}"?`,
         choices: [
@@ -177,7 +193,42 @@ async function projectActions(projectPath) {
       console.log(`Project deleted: ${projectName}`);
       console.log("");
 
-      return;
+      return "deleted";
+    }
+  }
+}
+
+async function projectActions(projectPath) {
+  while (true) {
+    const projectName = path.basename(projectPath);
+
+    const action = await select({
+      message: `What do you want to do with ${projectName}?`,
+      choices: [
+        { name: "Open", value: "open" },
+        { name: "Run", value: "run" },
+        { name: "Manage", value: "manage" },
+        { name: "← Go back", value: "back" },
+      ],
+      loop: false,
+    });
+
+    if (action === "back") return;
+
+    if (action === "open") {
+      await openMenu(projectPath);
+    }
+
+    if (action === "run") {
+      await runMenu(projectPath);
+    }
+
+    if (action === "manage") {
+      const result = await manageMenu(projectPath);
+
+      if (result === "deleted") {
+        return;
+      }
     }
   }
 }
