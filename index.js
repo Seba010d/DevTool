@@ -35,15 +35,18 @@ async function createProject() {
 
   drawHeader("DEVTOOL / CREATE", "Create a new project");
 
+  console.log("  PROJECT SETUP");
+  console.log("");
+
   const start = await select({
     message: "Create project:",
     choices: [
       {
-        name: "Continue",
+        name: "➜  Continue",
         value: "continue",
       },
       {
-        name: "← Cancel",
+        name: "←  Cancel",
         value: "cancel",
       },
     ],
@@ -53,6 +56,13 @@ async function createProject() {
   if (start === "cancel") {
     return;
   }
+
+  console.clear();
+
+  drawHeader("DEVTOOL / CREATE", "Create a new project");
+
+  console.log("  PROJECT SETUP");
+  console.log("");
 
   const projectName = (
     await input({
@@ -75,6 +85,10 @@ async function createProject() {
   const projectPath = path.join(projectLocation, projectName);
 
   if (fs.existsSync(projectPath)) {
+    console.clear();
+
+    drawHeader("DEVTOOL / CREATE", "Project already exists");
+
     error(`A project named "${projectName}" already exists.`);
 
     await input({
@@ -84,39 +98,46 @@ async function createProject() {
     return;
   }
 
+  console.clear();
+
+  drawHeader("DEVTOOL / CREATE", "Choose a project template");
+
+  console.log("  TEMPLATES");
+  console.log("");
+
   const template = await select({
-    message: "Choose a project template:",
+    message: "Choose:",
     choices: [
       {
-        name: "Empty project",
+        name: "📄  Empty project",
         value: "empty",
       },
       {
-        name: "Node.js project",
+        name: "🟢  Node.js project",
         value: "node",
       },
       {
-        name: "Node.js + Express",
+        name: "⚡  Node.js + Express",
         value: "express",
       },
       {
-        name: "Web",
+        name: "🌐  Web",
         value: "web",
       },
       {
-        name: "Web + SCSS",
+        name: "🎨  Web + SCSS",
         value: "web-scss",
       },
       {
-        name: "JavaScript App",
+        name: "📜  JavaScript App",
         value: "javascript",
       },
       {
-        name: "Boilerplate",
+        name: "📦  Boilerplate",
         value: "boilerplate",
       },
       {
-        name: "← Cancel",
+        name: "←  Cancel",
         value: "cancel",
       },
     ],
@@ -195,6 +216,9 @@ async function createProject() {
 
   drawHeader("DEVTOOL / CREATE", "Project created");
 
+  console.log("  RESULT");
+  console.log("");
+
   success(`Created ${projectName}`);
 
   console.log("");
@@ -239,23 +263,26 @@ async function main() {
 
     drawHeader("DEVTOOL", "Developer Toolbox");
 
+    console.log("  ACTIONS");
+    console.log("");
+
     const answer = await select({
       message: "What do you want to do?",
       choices: [
         {
-          name: "Create project",
+          name: "📦  Create project",
           value: "create",
         },
         {
-          name: "Projects",
+          name: "📁  Projects",
           value: "list",
         },
         {
-          name: "Settings",
+          name: "🔧  Settings",
           value: "settings",
         },
         {
-          name: "Exit",
+          name: "❌  Exit",
           value: "exit",
         },
       ],

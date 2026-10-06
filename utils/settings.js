@@ -1,127 +1,144 @@
 const { select, input } = require("@inquirer/prompts");
-
+const { loadConfig, saveConfig } = require("./config");
 const chooseFolder = require("./folderBrowser");
-const { loadConfig, saveConfig, clearRecentProjects, resetConfig } = require("./config");
 const { drawHeader, success, info } = require("./ui");
 
 async function openSettings() {
   while (true) {
     console.clear();
 
-    const config = loadConfig();
+    drawHeader("DEVTOOL / SETTINGS", "Configure DevTool");
 
-    drawHeader("DEVTOOL / SETTINGS", "Configuration");
+    console.log("  SETTINGS");
+    console.log("");
 
-    const answer = await select({
-      message: "Select setting:",
+    const choice = await select({
+      message: "Select:",
       choices: [
         {
-          name: `Projects location  ${config.projectsLocation}`,
-          value: "projects-location",
+          name: "📁  Projects location",
+          value: "projects",
         },
         {
-          name: `Last project location  ${config.lastProjectLocation}`,
-          value: "last-project-location",
+          name: "🕘  Last project location",
+          value: "last",
         },
         {
-          name: "Clear recent projects",
-          value: "clear-recent",
+          name: "🧹  Clear recent projects",
+          value: "clear",
         },
         {
-          name: "Reset settings",
+          name: "↩   Reset settings",
           value: "reset",
         },
         {
-          name: "← Back",
+          name: "←   Back",
           value: "back",
         },
       ],
       loop: false,
     });
 
-    if (answer === "back") {
+    if (choice === "back") {
       return;
     }
 
-    if (answer === "projects-location") {
-      const newLocation = await chooseFolder(config.projectsLocation);
+    const config = loadConfig();
 
-      if (!newLocation) {
-        continue;
-      }
-
-      config.projectsLocation = newLocation;
-      saveConfig(config);
-
+    if (choice === "projects") {
       console.clear();
+
       drawHeader("DEVTOOL / SETTINGS", "Projects location");
 
-      success("Projects location updated.");
+      console.log("  CURRENT LOCATION");
       console.log("");
-      info(newLocation);
+      info(config.projectsLocation);
+      console.log("");
 
-      await input({ message: "Press Enter to continue" });
+      const newLocation = await chooseFolder(config.projectsLocation);
+
+      if (newLocation) {
+        config.projectsLocation = newLocation;
+        saveConfig(config);
+
+        success("Projects location updated.");
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
     }
 
-    if (answer === "last-project-location") {
-      const newLocation = await chooseFolder(config.lastProjectLocation);
-
-      if (!newLocation) {
-        continue;
-      }
-
-      config.lastProjectLocation = newLocation;
-      saveConfig(config);
-
+    if (choice === "last") {
       console.clear();
+
       drawHeader("DEVTOOL / SETTINGS", "Last project location");
 
-      success("Last project location updated.");
+      console.log("  CURRENT LOCATION");
       console.log("");
-      info(newLocation);
+      info(config.lastProjectLocation || "Not set");
+      console.log("");
 
-      await input({ message: "Press Enter to continue" });
+      const newLocation = await chooseFolder(config.lastProjectLocation || config.projectsLocation);
+
+      if (newLocation) {
+        config.lastProjectLocation = newLocation;
+        saveConfig(config);
+
+        success("Last project location updated.");
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
     }
 
-    if (answer === "clear-recent") {
-      clearRecentProjects();
-
-      console.clear();
-      drawHeader("DEVTOOL / SETTINGS", "Recent projects");
+    if (choice === "clear") {
+      config.recentProjects = [];
+      saveConfig(config);
 
       success("Recent projects cleared.");
 
-      await input({ message: "Press Enter to continue" });
+      await input({
+        message: "Press Enter to continue",
+      });
     }
 
-    if (answer === "reset") {
+    if (choice === "reset") {
+      console.clear();
+
+      drawHeader("DEVTOOL / SETTINGS", "Reset settings");
+
       const confirmation = await select({
-        message: "Reset all DevTool settings?",
+        message: "Reset all settings?",
         choices: [
           {
-            name: "Yes, reset settings",
-            value: "yes",
+            name: "Reset settings",
+            value: true,
           },
           {
-            name: "No, cancel",
-            value: "no",
+            name: "Cancel",
+            value: false,
           },
         ],
         loop: false,
       });
 
-      if (confirmation !== "yes") {
-        continue;
+      if (confirmation) {
+        const defaultConfig = {
+          projectsLocation: config.projectsLocation,
+          lastProjectLocation: config.projectsLocation,
+          recentProjects: [],
+        };
+
+        saveConfig(defaultConfig);
+
+        success("Settings reset.");
+
+        await input({
+          message: "Press Enter to continue",
+        });
       }
-
-      resetConfig();
-
-      console.clear();
-      drawHeader("DEVTOOL / SETTINGS", "Configuration");
-
-      success("Settings reset.");
-
-      await input({ message: "Press Enter to continue" });
     }
   }
 }

@@ -5,10 +5,10 @@ const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
-const { addRecentProject, removeRecentProject, updateRecentProject } = require("./config");
-const { drawHeader, success, error, info } = require("./ui");
+const { addRecentProject, loadConfig, saveConfig } = require("./config");
+const { drawHeader, drawFooter, success, error, info } = require("./ui");
 
-function loadProjectConfig(projectPath) {
+function getProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
 
   if (!fs.existsSync(configPath)) {
@@ -22,37 +22,32 @@ function loadProjectConfig(projectPath) {
   }
 }
 
-function openApp(app, args, cwd) {
-  execFile(app, args, { cwd }, (err) => {
-    if (err) {
-      error(`Could not open ${app}: ${err.message}`);
-    }
-  });
-}
-
 async function openMenu(projectPath) {
   while (true) {
     console.clear();
 
     drawHeader("DEVTOOL / OPEN", path.basename(projectPath));
 
+    console.log("  OPEN PROJECT");
+    console.log("");
+
     const choice = await select({
-      message: "Open:",
+      message: "Open with:",
       choices: [
         {
-          name: "Open in VS Code",
-          value: "vscode",
+          name: "💻  VS Code",
+          value: "code",
         },
         {
-          name: "Open in Finder",
+          name: "📂  Finder",
           value: "finder",
         },
         {
-          name: "Open in Ghostty",
+          name: "⌨️   Ghostty",
           value: "terminal",
         },
         {
-          name: "← Go back",
+          name: "←  Back",
           value: "back",
         },
       ],
@@ -63,44 +58,94 @@ async function openMenu(projectPath) {
       return;
     }
 
-    if (choice === "finder") {
-      openApp("open", [projectPath], projectPath);
+    if (choice === "code") {
+      execFile("code", [projectPath], (errorObject) => {
+        if (errorObject) {
+          error("Could not open VS Code.");
+        } else {
+          success("Opened project in VS Code.");
+        }
+      });
+
+      await input({
+        message: "Press Enter to continue",
+      });
+
+      continue;
     }
 
-    if (choice === "vscode") {
-      openApp("code", [projectPath], projectPath);
+    if (choice === "finder") {
+      execFile("open", [projectPath], (errorObject) => {
+        if (errorObject) {
+          error("Could not open Finder.");
+        } else {
+          success("Opened project in Finder.");
+        }
+      });
+
+      await input({
+        message: "Press Enter to continue",
+      });
+
+      continue;
     }
 
     if (choice === "terminal") {
-      openApp("open", ["-a", "Ghostty", projectPath], projectPath);
+      const child = spawn(
+        "osascript",
+        [
+          "-e",
+          `tell application "Ghostty"
+            activate
+            set cfg to new surface configuration
+            set initial working directory of cfg to "${projectPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"
+            new window with configuration cfg
+          end tell`,
+        ],
+        {
+          detached: true,
+          stdio: "ignore",
+        },
+      );
+
+      child.unref();
+
+      success("Opened Ghostty.");
+
+      await input({
+        message: "Press Enter to continue",
+      });
     }
   }
 }
 
 async function runMenu(projectPath) {
   while (true) {
-    const config = loadProjectConfig(projectPath);
-
     console.clear();
 
     drawHeader("DEVTOOL / RUN", path.basename(projectPath));
 
+    console.log("  PROJECT");
+    console.log("");
+
+    const hasPackage = fs.existsSync(path.join(projectPath, "package.json"));
+
     const choices = [
       {
-        name: config?.run ? `Run project  ${config.run}` : "Run project",
+        name: "▶️   Run project",
         value: "run",
       },
     ];
 
-    if (fs.existsSync(path.join(projectPath, "package.json"))) {
+    if (hasPackage) {
       choices.push({
-        name: "Install dependencies",
+        name: "📥  Install dependencies",
         value: "install",
       });
     }
 
     choices.push({
-      name: "← Go back",
+      name: "←  Back",
       value: "back",
     });
 
@@ -116,34 +161,188 @@ async function runMenu(projectPath) {
 
     if (choice === "run") {
       runProject(projectPath);
-      continue;
+
+      await input({
+        message: "Press Enter to continue",
+      });
     }
 
     if (choice === "install") {
-      console.log("");
+      console.clear();
+
+      drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
 
       const child = spawn("npm", ["install"], {
         cwd: projectPath,
         stdio: "inherit",
       });
 
-      await new Promise((resolve) =>
-        child.on("close", (code) => {
-          console.log("");
+      await new Promise((resolve) => {
+        child.on("close", resolve);
+      });
 
-          if (code === 0) {
-            success("Dependencies installed.");
-          } else {
-            error(`npm install exited with code ${code}.`);
-          }
+      success("Dependencies installed.");
 
-          resolve();
-        }),
-      );
-
-      await input({ message: "Press Enter to continue" });
+      await input({
+        message: "Press Enter to continue",
+      });
     }
   }
+}
+
+async function showProjectInfo(projectPath) {
+  const config = getProjectConfig(projectPath);
+
+  console.clear();
+
+  drawHeader("DEVTOOL / INFO", path.basename(projectPath));
+
+  console.log("  PROJECT INFORMATION");
+  console.log("");
+
+  console.log(`  Name       ${config?.name || path.basename(projectPath)}`);
+  console.log(`  Type       ${config?.projectType || "unknown"}`);
+  console.log(`  Template   ${config?.template || "unknown"}`);
+  console.log(`  Created    ${config?.created || "unknown"}`);
+  console.log(`  Run        ${config?.run || "none"}`);
+
+  console.log("");
+  console.log(`  Path       ${projectPath}`);
+
+  await input({
+    message: "Press Enter to continue",
+  });
+}
+
+async function renameProject(projectPath) {
+  const oldName = path.basename(projectPath);
+
+  console.clear();
+
+  drawHeader("DEVTOOL / RENAME", oldName);
+
+  const newName = (
+    await input({
+      message: "New project name:",
+      default: oldName,
+    })
+  ).trim();
+
+  if (!newName || newName === oldName) {
+    return projectPath;
+  }
+
+  const newPath = path.join(path.dirname(projectPath), newName);
+
+  if (fs.existsSync(newPath)) {
+    error(`A project named "${newName}" already exists.`);
+
+    await input({
+      message: "Press Enter to continue",
+    });
+
+    return projectPath;
+  }
+
+  fs.renameSync(projectPath, newPath);
+
+  const configPath = path.join(newPath, ".devtool.json");
+
+  if (fs.existsSync(configPath)) {
+    const config = getProjectConfig(newPath);
+
+    if (config) {
+      config.name = newName;
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+    }
+  }
+
+  success(`Renamed ${oldName} to ${newName}.`);
+
+  await input({
+    message: "Press Enter to continue",
+  });
+
+  return newPath;
+}
+
+async function moveProject(projectPath) {
+  console.clear();
+
+  drawHeader("DEVTOOL / MOVE", path.basename(projectPath));
+
+  const config = loadConfig();
+
+  const destination = await chooseFolder(config.projectsLocation);
+
+  if (!destination) {
+    return projectPath;
+  }
+
+  const newPath = path.join(destination, path.basename(projectPath));
+
+  if (fs.existsSync(newPath)) {
+    error("A project with this name already exists there.");
+
+    await input({
+      message: "Press Enter to continue",
+    });
+
+    return projectPath;
+  }
+
+  fs.renameSync(projectPath, newPath);
+
+  success(`Moved ${path.basename(projectPath)}.`);
+
+  await input({
+    message: "Press Enter to continue",
+  });
+
+  return newPath;
+}
+
+async function deleteProject(projectPath) {
+  console.clear();
+
+  drawHeader("DEVTOOL / DELETE", path.basename(projectPath));
+
+  error("This will permanently delete the project.");
+
+  console.log("");
+
+  const confirmation = await select({
+    message: "Are you sure?",
+    choices: [
+      {
+        name: "Delete project",
+        value: true,
+      },
+      {
+        name: "Cancel",
+        value: false,
+      },
+    ],
+    loop: false,
+  });
+
+  if (!confirmation) {
+    return false;
+  }
+
+  fs.rmSync(projectPath, {
+    recursive: true,
+    force: true,
+  });
+
+  success(`Deleted ${path.basename(projectPath)}.`);
+
+  await input({
+    message: "Press Enter to continue",
+  });
+
+  return true;
 }
 
 async function manageMenu(projectPath) {
@@ -152,27 +351,96 @@ async function manageMenu(projectPath) {
 
     drawHeader("DEVTOOL / MANAGE", path.basename(projectPath));
 
+    console.log("  MANAGEMENT");
+    console.log("");
+
     const choice = await select({
-      message: "Manage:",
+      message: "Select:",
       choices: [
         {
-          name: "Project information",
+          name: "ℹ️   Project information",
           value: "info",
         },
         {
-          name: "Rename project",
+          name: "✏️   Rename project",
           value: "rename",
         },
         {
-          name: "Move project",
+          name: "📦  Move project",
           value: "move",
         },
         {
-          name: "Delete project",
+          name: "🗑️   Delete project",
           value: "delete",
         },
         {
-          name: "← Go back",
+          name: "←  Back",
+          value: "back",
+        },
+      ],
+      loop: false,
+    });
+
+    if (choice === "back") {
+      return {
+        path: projectPath,
+        deleted: false,
+      };
+    }
+
+    if (choice === "info") {
+      await showProjectInfo(projectPath);
+    }
+
+    if (choice === "rename") {
+      projectPath = await renameProject(projectPath);
+    }
+
+    if (choice === "move") {
+      projectPath = await moveProject(projectPath);
+    }
+
+    if (choice === "delete") {
+      const deleted = await deleteProject(projectPath);
+
+      if (deleted) {
+        return {
+          path: projectPath,
+          deleted: true,
+        };
+      }
+    }
+  }
+}
+
+async function projectActions(projectPath) {
+  addRecentProject(projectPath);
+
+  while (true) {
+    console.clear();
+
+    drawHeader("DEVTOOL / PROJECT", path.basename(projectPath));
+
+    console.log("  ACTIONS");
+    console.log("");
+
+    const choice = await select({
+      message: "What do you want to do?",
+      choices: [
+        {
+          name: "📂  Open",
+          value: "open",
+        },
+        {
+          name: "▶️   Run",
+          value: "run",
+        },
+        {
+          name: "🔧  Manage",
+          value: "manage",
+        },
+        {
+          name: "←  Back",
           value: "back",
         },
       ],
@@ -183,199 +451,22 @@ async function manageMenu(projectPath) {
       return;
     }
 
-    if (choice === "info") {
-      let pkg = {};
-      const meta = loadProjectConfig(projectPath) || {};
-
-      try {
-        pkg = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
-      } catch {}
-
-      const projectName = path.basename(projectPath);
-      const dependencies = Object.keys(pkg.dependencies || {});
-      const devDependencies = Object.keys(pkg.devDependencies || {});
-
-      console.clear();
-
-      drawHeader("DEVTOOL / PROJECT INFO", projectName);
-
-      console.log(`${info("Name")}        ${meta.name || projectName}`);
-      console.log(`${info("Type")}        ${meta.projectType || meta.type || "Unknown"}`);
-      console.log(`${info("Template")}    ${meta.template || "Unknown"}`);
-      console.log(`${info("Created")}     ${meta.created || "Unknown"}`);
-      console.log(`${info("Run")}         ${meta.run || "Not configured"}`);
-      console.log(`${info("Dependencies")} ${dependencies.length ? dependencies.join(", ") : "None"}`);
-      console.log(`${info("Dev deps")}    ${devDependencies.length ? devDependencies.join(", ") : "None"}`);
-
-      await input({ message: "Press Enter to continue" });
-    }
-
-    if (choice === "rename") {
-      const oldPath = projectPath;
-      const projectName = path.basename(projectPath);
-
-      const name = (
-        await input({
-          message: "New project name:",
-          default: projectName,
-        })
-      ).trim();
-
-      if (!name || name === projectName || name === "." || name === ".." || /[\\/]/.test(name)) {
-        continue;
-      }
-
-      const destination = path.join(path.dirname(projectPath), name);
-
-      if (fs.existsSync(destination)) {
-        error("That name already exists.");
-        await input({ message: "Press Enter to continue" });
-        continue;
-      }
-
-      fs.renameSync(projectPath, destination);
-
-      const configPath = path.join(destination, ".devtool.json");
-
-      if (fs.existsSync(configPath)) {
-        try {
-          const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
-          config.name = name;
-
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-        } catch {}
-      }
-
-      updateRecentProject(oldPath, destination);
-
-      projectPath = destination;
-
-      success(`Project renamed to ${name}.`);
-    }
-
-    if (choice === "move") {
-      const oldPath = projectPath;
-      const projectName = path.basename(projectPath);
-      const currentParent = path.dirname(projectPath);
-
-      const newLocation = await chooseFolder(currentParent);
-
-      if (!newLocation) {
-        continue;
-      }
-
-      if (newLocation === currentParent) {
-        info("Project is already in that folder.");
-        await input({ message: "Press Enter to continue" });
-        continue;
-      }
-
-      const destination = path.join(newLocation, projectName);
-
-      if (fs.existsSync(destination)) {
-        error(`A project named "${projectName}" already exists there.`);
-        await input({ message: "Press Enter to continue" });
-        continue;
-      }
-
-      fs.renameSync(projectPath, destination);
-
-      updateRecentProject(oldPath, destination);
-
-      projectPath = destination;
-
-      success(`Project moved to ${projectPath}.`);
-    }
-
-    if (choice === "delete") {
-      const projectName = path.basename(projectPath);
-
-      const confirmation = await select({
-        message: `Delete "${projectName}"?`,
-        choices: [
-          {
-            name: "Yes, delete project",
-            value: "yes",
-          },
-          {
-            name: "No, cancel",
-            value: "no",
-          },
-        ],
-        loop: false,
-      });
-
-      if (confirmation !== "yes") {
-        continue;
-      }
-
-      fs.rmSync(projectPath, {
-        recursive: true,
-        force: true,
-      });
-
-      removeRecentProject(projectPath);
-
-      success(`Project deleted: ${projectName}.`);
-
-      return "deleted";
-    }
-  }
-}
-
-async function projectActions(projectPath) {
-  addRecentProject(projectPath);
-
-  while (true) {
-    const projectName = path.basename(projectPath);
-    const config = loadProjectConfig(projectPath);
-
-    console.clear();
-
-    drawHeader(`DEVTOOL / ${projectName.toUpperCase()}`, config?.projectType || "Project");
-
-    const action = await select({
-      message: "What do you want to do?",
-      choices: [
-        {
-          name: "Open",
-          value: "open",
-        },
-        {
-          name: config?.run ? `Run  ${config.run}` : "Run",
-          value: "run",
-        },
-        {
-          name: "Manage",
-          value: "manage",
-        },
-        {
-          name: "← Go back",
-          value: "back",
-        },
-      ],
-      loop: false,
-    });
-
-    if (action === "back") {
-      return;
-    }
-
-    if (action === "open") {
+    if (choice === "open") {
       await openMenu(projectPath);
     }
 
-    if (action === "run") {
+    if (choice === "run") {
       await runMenu(projectPath);
     }
 
-    if (action === "manage") {
+    if (choice === "manage") {
       const result = await manageMenu(projectPath);
 
-      if (result === "deleted") {
+      if (result.deleted) {
         return;
       }
+
+      projectPath = result.path;
     }
   }
 }
