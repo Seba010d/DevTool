@@ -10,7 +10,9 @@ const { loadConfig, saveConfig } = require("./utils/config");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
+const createExpressProject = require("./templates/express");
 const createWebProject = require("./templates/web");
+const createJavaScriptProject = require("./templates/javascript");
 const createBoilerplateProject = require("./templates/boilerplate");
 
 function getDanishDateTime() {
@@ -25,20 +27,6 @@ function getDanishDateTime() {
   })
     .format(new Date())
     .replace(",", "");
-}
-
-function loadProjectConfig(projectPath) {
-  const configPath = path.join(projectPath, ".devtool.json");
-
-  if (!fs.existsSync(configPath)) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(fs.readFileSync(configPath, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 async function createProject() {
@@ -63,9 +51,15 @@ async function createProject() {
 
   const config = loadConfig();
 
-  const projectName = await input({
-    message: "Project name:",
-  });
+  const projectName = (
+    await input({
+      message: "Project name:",
+    })
+  ).trim();
+
+  if (!projectName) {
+    return;
+  }
 
   console.log("");
 
@@ -100,12 +94,20 @@ async function createProject() {
         value: "node",
       },
       {
+        name: "Node.js + Express",
+        value: "express",
+      },
+      {
         name: "Web",
         value: "web",
       },
       {
         name: "Web + SCSS",
         value: "web-scss",
+      },
+      {
+        name: "JavaScript App",
+        value: "javascript",
       },
       {
         name: "Boilerplate",
@@ -136,12 +138,20 @@ async function createProject() {
     createNodeProject(projectPath);
   }
 
+  if (template === "express") {
+    createExpressProject(projectPath);
+  }
+
   if (template === "web") {
     createWebProject(projectPath, false);
   }
 
   if (template === "web-scss") {
     createWebProject(projectPath, true);
+  }
+
+  if (template === "javascript") {
+    createJavaScriptProject(projectPath);
   }
 
   if (template === "boilerplate") {
@@ -151,16 +161,20 @@ async function createProject() {
   const projectTypes = {
     empty: "empty",
     node: "node",
+    express: "node",
     web: "web",
     "web-scss": "web",
+    javascript: "javascript",
     boilerplate: "boilerplate",
   };
 
   const runCommands = {
     empty: null,
     node: "npm start",
+    express: "npm start",
     web: null,
     "web-scss": "npm run build",
+    javascript: null,
     boilerplate: null,
   };
 
@@ -177,65 +191,13 @@ async function createProject() {
 
   console.log("");
   console.log(`Project created: ${projectPath}`);
+  console.log("");
 }
 
 async function listProjects() {
   const { projectsLocation } = loadConfig();
 
   await browseProjects(projectsLocation);
-}
-
-async function recentProjects() {
-  const config = loadConfig();
-
-  const validProjects = config.recentProjects.filter((projectPath) => fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory());
-
-  config.recentProjects = validProjects;
-  saveConfig(config);
-
-  if (!validProjects.length) {
-    console.log("");
-    console.log("No recent projects.");
-    console.log("");
-
-    await input({
-      message: "Press Enter to continue",
-    });
-
-    return;
-  }
-
-  const choices = validProjects.map((projectPath) => {
-    const projectConfig = loadProjectConfig(projectPath);
-
-    let name = `📦 ${path.basename(projectPath)}`;
-
-    if (projectConfig?.projectType) {
-      name += ` (${projectConfig.projectType})`;
-    }
-
-    return {
-      name,
-      value: projectPath,
-    };
-  });
-
-  choices.push({
-    name: "← Back",
-    value: null,
-  });
-
-  const selected = await select({
-    message: "Recent projects:",
-    choices,
-    loop: false,
-  });
-
-  if (selected) {
-    const projectActions = require("./utils/projectActions");
-
-    await projectActions(selected);
-  }
 }
 
 async function main() {
@@ -276,10 +238,6 @@ async function main() {
           value: "list",
         },
         {
-          name: "Recent projects",
-          value: "recent",
-        },
-        {
           name: "Settings",
           value: "settings",
         },
@@ -300,10 +258,6 @@ async function main() {
         await listProjects();
         break;
 
-      case "recent":
-        await recentProjects();
-        break;
-
       case "settings":
         await openSettings();
         break;
@@ -317,9 +271,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error.name === "ExitPromptError") {
-    return;
-  }
+  if (error.name === "ExitPromptError") return;
 
   console.error(error.message);
   process.exitCode = 1;

@@ -28,6 +28,16 @@ function getDefaultProjectLocation() {
   return fs.existsSync(projectsPath) ? projectsPath : os.homedir();
 }
 
+function getDefaultConfig() {
+  const projectsLocation = getDefaultProjectLocation();
+
+  return {
+    projectsLocation,
+    lastProjectLocation: projectsLocation,
+    recentProjects: [],
+  };
+}
+
 function loadConfig() {
   let config = {};
 
@@ -44,6 +54,7 @@ function loadConfig() {
   const lastProjectLocation = expandHome(config.lastProjectLocation) || projectsLocation;
 
   return {
+    ...getDefaultConfig(),
     ...config,
     projectsLocation,
     lastProjectLocation,
@@ -70,38 +81,21 @@ function saveConfig(config) {
   fs.writeFileSync(userConfigPath, JSON.stringify(savedConfig, null, 2) + "\n");
 }
 
-function addRecentProject(projectPath) {
+function clearRecentProjects() {
   const config = loadConfig();
 
-  const recentProjects = config.recentProjects.filter((recentPath) => recentPath !== projectPath);
-
-  recentProjects.unshift(projectPath);
-
-  config.recentProjects = recentProjects.slice(0, 5);
+  config.recentProjects = [];
 
   saveConfig(config);
 }
 
-function removeRecentProject(projectPath) {
-  const config = loadConfig();
-
-  config.recentProjects = config.recentProjects.filter((recentPath) => recentPath !== projectPath);
-
-  saveConfig(config);
-}
-
-function updateRecentProject(oldPath, newPath) {
-  const config = loadConfig();
-
-  config.recentProjects = config.recentProjects.map((recentPath) => (recentPath === oldPath ? newPath : recentPath));
-
-  saveConfig(config);
+function resetConfig() {
+  saveConfig(getDefaultConfig());
 }
 
 module.exports = {
   loadConfig,
   saveConfig,
-  addRecentProject,
-  removeRecentProject,
-  updateRecentProject,
+  clearRecentProjects,
+  resetConfig,
 };
