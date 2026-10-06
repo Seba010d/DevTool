@@ -1,10 +1,23 @@
-// utils/projectBrowser.js
 const fs = require("fs");
 const path = require("path");
 const { select, input } = require("@inquirer/prompts");
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
+
+function loadProjectConfig(projectPath) {
+  const configPath = path.join(projectPath, ".devtool.json");
+
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
 
 async function browseProjects(startPath) {
   let currentPath = startPath;
@@ -15,9 +28,16 @@ async function browseProjects(startPath) {
     const choices = entries.map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
       const project = isProject(entryPath);
+      const config = project ? loadProjectConfig(entryPath) : null;
+
+      let name = `${project ? "📦" : "📁"} ${entry.name}`;
+
+      if (config?.projectType) {
+        name += ` (${config.projectType})`;
+      }
 
       return {
-        name: `${project ? "📦" : "📁"} ${entry.name}`,
+        name,
         value: {
           type: project ? "project" : "folder",
           path: entryPath,
@@ -49,7 +69,13 @@ async function browseProjects(startPath) {
     });
 
     if (selected.type === "search") {
-      const query = (await input({ message: "Search project name:" })).trim().toLowerCase();
+      const query = (
+        await input({
+          message: "Search project name:",
+        })
+      )
+        .trim()
+        .toLowerCase();
 
       if (!query) continue;
 
@@ -63,11 +89,24 @@ async function browseProjects(startPath) {
       const found = await select({
         message: "Search results:",
         choices: [
-          ...matches.map((projectPath) => ({
-            name: `📦 ${path.basename(projectPath)}`,
-            value: projectPath,
-          })),
-          { name: "← Back", value: null },
+          ...matches.map((projectPath) => {
+            const config = loadProjectConfig(projectPath);
+
+            let name = `📦 ${path.basename(projectPath)}`;
+
+            if (config?.projectType) {
+              name += ` (${config.projectType})`;
+            }
+
+            return {
+              name,
+              value: projectPath,
+            };
+          }),
+          {
+            name: "← Back",
+            value: null,
+          },
         ],
         loop: false,
       });

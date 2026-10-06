@@ -53,6 +53,13 @@ async function createProject() {
 
   const projectPath = path.join(projectLocation, projectName);
 
+  if (fs.existsSync(projectPath)) {
+    console.log("");
+    console.log(`A project named "${projectName}" already exists.`);
+    console.log("");
+    return;
+  }
+
   const template = await select({
     message: "Choose a project template:",
     choices: [
@@ -113,12 +120,32 @@ async function createProject() {
     createBoilerplateProject(projectPath);
   }
 
-  const devtoolConfig = {
-    type: "project",
-    template,
+  const projectTypes = {
+    empty: "empty",
+    node: "node",
+    web: "web",
+    "web-scss": "web",
+    boilerplate: "boilerplate",
   };
 
-  fs.writeFileSync(path.join(projectPath, ".devtool.json"), JSON.stringify(devtoolConfig, null, 2));
+  const runCommands = {
+    empty: null,
+    node: "npm start",
+    web: null,
+    "web-scss": "npm run build",
+    boilerplate: null,
+  };
+
+  const devtoolConfig = {
+    name: projectName,
+    type: "project",
+    template,
+    projectType: projectTypes[template],
+    created: new Date().toISOString(),
+    run: runCommands[template],
+  };
+
+  fs.writeFileSync(path.join(projectPath, ".devtool.json"), JSON.stringify(devtoolConfig, null, 2) + "\n");
 
   console.log("");
   console.log(`Project created: ${projectPath}`);

@@ -1,4 +1,3 @@
-// utils/projectActions.js
 const fs = require("fs");
 const path = require("path");
 const { select, input } = require("@inquirer/prompts");
@@ -6,6 +5,20 @@ const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
+
+function loadProjectConfig(projectPath) {
+  const configPath = path.join(projectPath, ".devtool.json");
+
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
 
 function openApp(app, args, cwd) {
   execFile(app, args, { cwd }, (err) => {
@@ -44,7 +57,16 @@ async function openMenu(projectPath) {
 
 async function runMenu(projectPath) {
   while (true) {
-    const choices = [{ name: "Run project", value: "run" }, ...(fs.existsSync(path.join(projectPath, "package.json")) ? [{ name: "Install dependencies", value: "install" }] : []), { name: "← Go back", value: "back" }];
+    const config = loadProjectConfig(projectPath);
+
+    const choices = [
+      {
+        name: config?.run ? `Run project (${config.run})` : "Run project",
+        value: "run",
+      },
+      ...(fs.existsSync(path.join(projectPath, "package.json")) ? [{ name: "Install dependencies", value: "install" }] : []),
+      { name: "← Go back", value: "back" },
+    ];
 
     const choice = await select({
       message: "Run:",
@@ -95,20 +117,25 @@ async function manageMenu(projectPath) {
 
     if (choice === "info") {
       let pkg = {};
-      let meta = {};
+      const meta = loadProjectConfig(projectPath) || {};
 
       try {
         pkg = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
       } catch {}
 
-      try {
-        meta = JSON.parse(fs.readFileSync(path.join(projectPath, ".devtool.json"), "utf8"));
-      } catch {}
-
       const projectName = path.basename(projectPath);
       const dependencies = Object.keys(pkg.dependencies || {});
+      const devDependencies = Object.keys(pkg.devDependencies || {});
 
-      console.log(`\nName: ${projectName}\nTemplate: ${meta.template || "Unknown"}\nDependencies: ${dependencies.length ? dependencies.join(", ") : "None listed"}\n`);
+      console.log("");
+      console.log(`Name: ${meta.name || projectName}`);
+      console.log(`Type: ${meta.projectType || meta.type || "Unknown"}`);
+      console.log(`Template: ${meta.template || "Unknown"}`);
+      console.log(`Created: ${meta.created || "Unknown"}`);
+      console.log(`Run: ${meta.run || "Not configured"}`);
+      console.log(`Dependencies: ${dependencies.length ? dependencies.join(", ") : "None"}`);
+      console.log(`Dev dependencies: ${devDependencies.length ? devDependencies.join(", ") : "None"}`);
+      console.log("");
 
       await input({ message: "Press Enter to continue" });
     }
@@ -135,6 +162,19 @@ async function manageMenu(projectPath) {
       }
 
       fs.renameSync(projectPath, destination);
+
+      const configPath = path.join(destination, ".devtool.json");
+
+      if (fs.existsSync(configPath)) {
+        try {
+          const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+          config.name = name;
+
+          fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+        } catch {}
+      }
+
       projectPath = destination;
     }
 
@@ -201,12 +241,16 @@ async function manageMenu(projectPath) {
 async function projectActions(projectPath) {
   while (true) {
     const projectName = path.basename(projectPath);
+    const config = loadProjectConfig(projectPath);
 
     const action = await select({
       message: `What do you want to do with ${projectName}?`,
       choices: [
         { name: "Open", value: "open" },
-        { name: "Run", value: "run" },
+        {
+          name: config?.run ? `Run (${config.run})` : "Run",
+          value: "run",
+        },
         { name: "Manage", value: "manage" },
         { name: "← Go back", value: "back" },
       ],
