@@ -5,6 +5,7 @@ const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
+const { addRecentProject, removeRecentProject, updateRecentProject } = require("./config");
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -22,7 +23,9 @@ function loadProjectConfig(projectPath) {
 
 function openApp(app, args, cwd) {
   execFile(app, args, { cwd }, (err) => {
-    if (err) console.log(`Could not open ${app}: ${err.message}`);
+    if (err) {
+      console.log(`Could not open ${app}: ${err.message}`);
+    }
   });
 }
 
@@ -39,7 +42,9 @@ async function openMenu(projectPath) {
       loop: false,
     });
 
-    if (choice === "back") return;
+    if (choice === "back") {
+      return;
+    }
 
     if (choice === "finder") {
       openApp("open", [projectPath], projectPath);
@@ -74,7 +79,9 @@ async function runMenu(projectPath) {
       loop: false,
     });
 
-    if (choice === "back") return;
+    if (choice === "back") {
+      return;
+    }
 
     if (choice === "run") {
       runProject(projectPath);
@@ -113,7 +120,9 @@ async function manageMenu(projectPath) {
       loop: false,
     });
 
-    if (choice === "back") return;
+    if (choice === "back") {
+      return;
+    }
 
     if (choice === "info") {
       let pkg = {};
@@ -141,6 +150,7 @@ async function manageMenu(projectPath) {
     }
 
     if (choice === "rename") {
+      const oldPath = projectPath;
       const projectName = path.basename(projectPath);
 
       const name = (
@@ -175,10 +185,13 @@ async function manageMenu(projectPath) {
         } catch {}
       }
 
+      updateRecentProject(oldPath, destination);
+
       projectPath = destination;
     }
 
     if (choice === "move") {
+      const oldPath = projectPath;
       const projectName = path.basename(projectPath);
       const currentParent = path.dirname(projectPath);
 
@@ -203,6 +216,9 @@ async function manageMenu(projectPath) {
       }
 
       fs.renameSync(projectPath, destination);
+
+      updateRecentProject(oldPath, destination);
+
       projectPath = destination;
 
       console.log(`\nProject moved to: ${projectPath}`);
@@ -214,8 +230,14 @@ async function manageMenu(projectPath) {
       const confirmation = await select({
         message: `Delete "${projectName}"?`,
         choices: [
-          { name: "Yes, delete project", value: "yes" },
-          { name: "No, cancel", value: "no" },
+          {
+            name: "Yes, delete project",
+            value: "yes",
+          },
+          {
+            name: "No, cancel",
+            value: "no",
+          },
         ],
         loop: false,
       });
@@ -229,6 +251,8 @@ async function manageMenu(projectPath) {
         force: true,
       });
 
+      removeRecentProject(projectPath);
+
       console.log("");
       console.log(`Project deleted: ${projectName}`);
       console.log("");
@@ -239,6 +263,8 @@ async function manageMenu(projectPath) {
 }
 
 async function projectActions(projectPath) {
+  addRecentProject(projectPath);
+
   while (true) {
     const projectName = path.basename(projectPath);
     const config = loadProjectConfig(projectPath);
@@ -257,7 +283,9 @@ async function projectActions(projectPath) {
       loop: false,
     });
 
-    if (action === "back") return;
+    if (action === "back") {
+      return;
+    }
 
     if (action === "open") {
       await openMenu(projectPath);

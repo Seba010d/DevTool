@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { select, input } = require("@inquirer/prompts");
+
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
@@ -23,10 +24,15 @@ async function browseProjects(startPath) {
   let currentPath = startPath;
 
   while (true) {
-    const entries = fs.readdirSync(currentPath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+    const entries = fs
+      .readdirSync(currentPath, {
+        withFileTypes: true,
+      })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
 
     const choices = entries.map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
+
       const project = isProject(entryPath);
       const config = project ? loadProjectConfig(entryPath) : null;
 
@@ -48,17 +54,23 @@ async function browseProjects(startPath) {
     if (currentPath === startPath) {
       choices.unshift({
         name: "Search projects",
-        value: { type: "search" },
+        value: {
+          type: "search",
+        },
       });
 
       choices.push({
         name: "← Back to main menu",
-        value: { type: "main" },
+        value: {
+          type: "main",
+        },
       });
     } else {
       choices.push({
         name: "← Go back",
-        value: { type: "back" },
+        value: {
+          type: "back",
+        },
       });
     }
 
@@ -77,7 +89,9 @@ async function browseProjects(startPath) {
         .trim()
         .toLowerCase();
 
-      if (!query) continue;
+      if (!query) {
+        continue;
+      }
 
       const matches = scanProjects(startPath).filter((projectPath) => path.basename(projectPath).toLowerCase().includes(query));
 

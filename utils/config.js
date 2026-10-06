@@ -47,6 +47,7 @@ function loadConfig() {
     ...config,
     projectsLocation,
     lastProjectLocation,
+    recentProjects: Array.isArray(config.recentProjects) ? config.recentProjects : [],
   };
 }
 
@@ -63,12 +64,44 @@ function saveConfig(config) {
     ...config,
     projectsLocation,
     lastProjectLocation,
+    recentProjects: Array.isArray(config.recentProjects) ? config.recentProjects : [],
   };
 
-  fs.writeFileSync(userConfigPath, JSON.stringify(savedConfig, null, 2));
+  fs.writeFileSync(userConfigPath, JSON.stringify(savedConfig, null, 2) + "\n");
+}
+
+function addRecentProject(projectPath) {
+  const config = loadConfig();
+
+  const recentProjects = config.recentProjects.filter((recentPath) => recentPath !== projectPath);
+
+  recentProjects.unshift(projectPath);
+
+  config.recentProjects = recentProjects.slice(0, 5);
+
+  saveConfig(config);
+}
+
+function removeRecentProject(projectPath) {
+  const config = loadConfig();
+
+  config.recentProjects = config.recentProjects.filter((recentPath) => recentPath !== projectPath);
+
+  saveConfig(config);
+}
+
+function updateRecentProject(oldPath, newPath) {
+  const config = loadConfig();
+
+  config.recentProjects = config.recentProjects.map((recentPath) => (recentPath === oldPath ? newPath : recentPath));
+
+  saveConfig(config);
 }
 
 module.exports = {
   loadConfig,
   saveConfig,
+  addRecentProject,
+  removeRecentProject,
+  updateRecentProject,
 };

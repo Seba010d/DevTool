@@ -27,6 +27,20 @@ function getDanishDateTime() {
     .replace(",", "");
 }
 
+function loadProjectConfig(projectPath) {
+  const configPath = path.join(projectPath, ".devtool.json");
+
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 async function createProject() {
   const start = await select({
     message: "Create project:",
@@ -171,6 +185,59 @@ async function listProjects() {
   await browseProjects(projectsLocation);
 }
 
+async function recentProjects() {
+  const config = loadConfig();
+
+  const validProjects = config.recentProjects.filter((projectPath) => fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory());
+
+  config.recentProjects = validProjects;
+  saveConfig(config);
+
+  if (!validProjects.length) {
+    console.log("");
+    console.log("No recent projects.");
+    console.log("");
+
+    await input({
+      message: "Press Enter to continue",
+    });
+
+    return;
+  }
+
+  const choices = validProjects.map((projectPath) => {
+    const projectConfig = loadProjectConfig(projectPath);
+
+    let name = `📦 ${path.basename(projectPath)}`;
+
+    if (projectConfig?.projectType) {
+      name += ` (${projectConfig.projectType})`;
+    }
+
+    return {
+      name,
+      value: projectPath,
+    };
+  });
+
+  choices.push({
+    name: "← Back",
+    value: null,
+  });
+
+  const selected = await select({
+    message: "Recent projects:",
+    choices,
+    loop: false,
+  });
+
+  if (selected) {
+    const projectActions = require("./utils/projectActions");
+
+    await projectActions(selected);
+  }
+}
+
 async function main() {
   if (process.argv[2] === "create") {
     await createProject();
@@ -209,6 +276,10 @@ async function main() {
           value: "list",
         },
         {
+          name: "Recent projects",
+          value: "recent",
+        },
+        {
           name: "Settings",
           value: "settings",
         },
@@ -229,6 +300,10 @@ async function main() {
         await listProjects();
         break;
 
+      case "recent":
+        await recentProjects();
+        break;
+
       case "settings":
         await openSettings();
         break;
@@ -242,7 +317,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error.name === "ExitPromptError") return;
+  if (error.name === "ExitPromptError") {
+    return;
+  }
 
   console.error(error.message);
   process.exitCode = 1;
