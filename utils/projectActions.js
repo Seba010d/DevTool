@@ -61,13 +61,11 @@ async function openMenu(projectPath) {
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
-
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
         continue;
       }
 
@@ -182,13 +180,11 @@ async function runMenu(projectPath) {
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
-
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
         continue;
       }
 
@@ -218,7 +214,6 @@ async function runMenu(projectPath) {
         drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
 
         console.log("  INSTALLING DEPENDENCIES");
-
         console.log("");
 
         const child = spawn("npm", ["install"], {
@@ -254,17 +249,12 @@ async function showProjectInfo(projectPath) {
   drawHeader("DEVTOOL / INFO", path.basename(projectPath));
 
   console.log("  PROJECT INFORMATION");
-
   console.log("");
 
   console.log(`  Name       ${config?.name || path.basename(projectPath)}`);
-
   console.log(`  Type       ${config?.projectType || "unknown"}`);
-
   console.log(`  Template   ${config?.template || "unknown"}`);
-
   console.log(`  Created    ${config?.created || "unknown"}`);
-
   console.log(`  Run        ${config?.run || "none"}`);
 
   console.log("");
@@ -392,10 +382,20 @@ async function deleteProject(projectPath) {
   console.log("");
 
   const confirmation = await input({
-    message: "Type DELETE to confirm:",
+    message: "Are you sure you want to delete this project? (y/N)",
+    default: "N",
+    validate: (value) => {
+      const answer = value.trim().toLowerCase();
+
+      if (answer === "y" || answer === "n" || answer === "") {
+        return true;
+      }
+
+      return "Please enter y or n.";
+    },
   });
 
-  if (confirmation !== "DELETE") {
+  if (confirmation.trim().toLowerCase() !== "y") {
     enableKeyboard();
     return false;
   }
@@ -458,13 +458,11 @@ async function manageMenu(projectPath) {
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
-
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
         continue;
       }
 
@@ -548,13 +546,11 @@ async function projectActions(projectPath) {
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
-
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
         continue;
       }
 

@@ -107,11 +107,13 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
+
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
         continue;
       }
 
@@ -147,6 +149,7 @@ module.exports = {
   renderChoice,
   drawKeybindings,
   moveSelection,
+  isBackKey,
   getDisplayWidth,
   padDisplayWidth,
 };
