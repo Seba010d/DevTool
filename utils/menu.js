@@ -8,14 +8,41 @@ function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
 
   console.log("");
+
   console.log(`  ${bindings}`);
+}
+
+function getDisplayWidth(text) {
+  let width = 0;
+
+  for (const character of text) {
+    const code = character.codePointAt(0);
+
+    if ((code >= 0x1f300 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) {
+      width += 2;
+    } else {
+      width += 1;
+    }
+  }
+
+  return width;
+}
+
+function padDisplayWidth(text, width) {
+  const currentWidth = getDisplayWidth(text);
+
+  if (currentWidth >= width) {
+    return text;
+  }
+
+  return text + " ".repeat(width - currentWidth);
 }
 
 function renderChoice(choice, selected) {
   const pointer = selected ? "❯" : " ";
-  const icon = (choice.icon || "").padEnd(3, " ");
+  const icon = padDisplayWidth(choice.icon || "", 2);
 
-  return `${pointer}  ${icon} ${choice.name}`;
+  return `${pointer}  ${icon}  ${choice.name}`;
 }
 
 function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, header, footer = DEFAULT_KEYBINDINGS }) {
@@ -47,7 +74,9 @@ function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, head
 }
 
 function moveSelection(currentIndex, direction, itemCount) {
-  if (itemCount <= 0) return 0;
+  if (itemCount <= 0) {
+    return 0;
+  }
 
   if (direction === "up") {
     return Math.max(0, currentIndex - 1);
@@ -103,7 +132,9 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
       }
 
       if (key.name === "return") {
-        if (!choices.length) continue;
+        if (!choices.length) {
+          continue;
+        }
 
         return {
           value: choices[selectedIndex].value,

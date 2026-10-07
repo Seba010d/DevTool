@@ -40,34 +40,6 @@ async function createProject() {
 
   drawHeader("DEVTOOL", "Create a new project");
 
-  const start = await selectMenu({
-    title: "DEVTOOL",
-    subtitle: "Create a new project",
-    section: "PROJECT SETUP",
-    choices: [
-      {
-        name: "Continue",
-        icon: "▶",
-        value: "continue",
-      },
-      {
-        name: "Back",
-        icon: "←",
-        value: "cancel",
-      },
-    ],
-  });
-
-  if (start.action === "back" || start.value === "cancel") {
-    return;
-  }
-
-  disableKeyboard();
-
-  console.clear();
-
-  drawHeader("DEVTOOL", "Create a new project");
-
   console.log("  PROJECT SETUP");
   console.log("");
 
@@ -107,7 +79,7 @@ async function createProject() {
 
   const templateResult = await selectMenu({
     title: "DEVTOOL",
-    subtitle: "Choose a project template",
+    subtitle: "Create a new project",
     section: "TEMPLATES",
     choices: [
       {
