@@ -1,14 +1,13 @@
 const fs = require("fs");
 const path = require("path");
-const readline = require("readline");
 const { input } = require("@inquirer/prompts");
 
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
 const { drawHeader, info } = require("./ui");
-
-readline.emitKeypressEvents(process.stdin);
+const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
+const { drawKeybindings, renderChoice, moveSelection, isBackKey } = require("./menu");
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -81,71 +80,22 @@ function getEntries(currentPath) {
     );
 }
 
-function clearScreen() {
-  process.stdout.write("\x1b[2J\x1b[H");
-}
-
-function disableKeyboard() {
-  if (process.stdin.isTTY) {
-    process.stdin.setRawMode(false);
-  }
-
-  process.stdin.pause();
-
-  process.stdout.write("\x1b[?25h");
-}
-
-function enableKeyboard() {
-  if (process.stdin.isTTY) {
-    process.stdin.setRawMode(true);
-  }
-
-  process.stdin.resume();
-
-  process.stdout.write("\x1b[?25l");
-}
-
-function waitForKey() {
-  return new Promise((resolve) => {
-    const onKeypress = (str, key) => {
-      process.stdin.removeListener("keypress", onKeypress);
-
-      resolve({
-        str,
-        key,
-      });
-    };
-
-    process.stdin.on("keypress", onKeypress);
-  });
-}
-
-function drawKeybindings(bindings = "↑↓ Navigate    Enter Select    Q Back") {
-  console.log("");
-
-  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
-
-  console.log("");
-
-  console.log(`  ${bindings}`);
-}
-
 function renderEntry(entry, selected) {
-  const pointer = selected ? "❯" : " ";
+  const choice = {
+    name: entry.name,
+    icon: entry.icon,
+  };
 
-  const icon = entry.icon.padEnd(3, " ");
-
-  const left = `${pointer}  ${icon} ${entry.name}`;
+  const line = renderChoice(choice, selected);
 
   if (!entry.projectType) {
-    return left;
+    return line;
   }
 
   const nameColumnWidth = 34;
+  const spacing = Math.max(2, nameColumnWidth - line.length);
 
-  const spacing = Math.max(2, nameColumnWidth - left.length);
-
-  return left + " ".repeat(spacing) + entry.projectType;
+  return line + " ".repeat(spacing) + entry.projectType;
 }
 
 function renderProjectList(currentPath, entries, selectedIndex) {
@@ -202,7 +152,6 @@ async function searchProjects(startPath) {
     info(`No projects matching "${query}" were found.`);
 
     console.log("");
-
     console.log("  Press any key to continue...");
 
     enableKeyboard();
@@ -239,29 +188,25 @@ async function searchProjects(startPath) {
 
     drawKeybindings();
 
-    const { str, key } = await waitForKey();
+    const key = await waitForKey();
 
-    if (key?.name === "up") {
-      if (selectedIndex > 0) {
-        selectedIndex--;
-      }
+    if (key.name === "up") {
+      selectedIndex = moveSelection(selectedIndex, "up", entries.length);
 
       continue;
     }
 
-    if (key?.name === "down") {
-      if (selectedIndex < entries.length - 1) {
-        selectedIndex++;
-      }
+    if (key.name === "down") {
+      selectedIndex = moveSelection(selectedIndex, "down", entries.length);
 
       continue;
     }
 
-    if (key?.name === "escape" || str === "q" || str === "Q") {
+    if (isBackKey(key)) {
       return;
     }
 
-    if (key?.name === "return") {
+    if (key.name === "return") {
       disableKeyboard();
 
       await projectActions(entries[selectedIndex].path);
@@ -287,25 +232,21 @@ async function browseProjects(startPath) {
       while (true) {
         renderProjectList(currentPath, entries, selectedIndex);
 
-        const { str, key } = await waitForKey();
+        const key = await waitForKey();
 
-        if (key?.name === "up") {
-          if (selectedIndex > 0) {
-            selectedIndex--;
-          }
+        if (key.name === "up") {
+          selectedIndex = moveSelection(selectedIndex, "up", entries.length);
 
           continue;
         }
 
-        if (key?.name === "down") {
-          if (selectedIndex < entries.length - 1) {
-            selectedIndex++;
-          }
+        if (key.name === "down") {
+          selectedIndex = moveSelection(selectedIndex, "down", entries.length);
 
           continue;
         }
 
-        if (key?.name === "escape" || str === "q" || str === "Q") {
+        if (isBackKey(key)) {
           if (currentPath === startPath) {
             return;
           }
@@ -315,7 +256,7 @@ async function browseProjects(startPath) {
           break;
         }
 
-        if (key?.name === "return") {
+        if (key.name === "return") {
           if (!entries.length) {
             continue;
           }
@@ -334,12 +275,11 @@ async function browseProjects(startPath) {
 
           if (selected.type === "folder") {
             currentPath = selected.path;
-
             break;
           }
         }
 
-        if (str === "/") {
+        if (key.name === "/") {
           await searchProjects(startPath);
 
           enableKeyboard();

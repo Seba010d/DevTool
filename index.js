@@ -2,13 +2,15 @@
 
 const fs = require("fs");
 const path = require("path");
-const { select, input } = require("@inquirer/prompts");
+const { input } = require("@inquirer/prompts");
 
 const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
+const { selectMenu } = require("./utils/menu");
+const { disableKeyboard } = require("./utils/keyboard");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -32,31 +34,35 @@ function getDanishDateTime() {
 }
 
 async function createProject() {
+  disableKeyboard();
+
   console.clear();
 
   drawHeader("DEVTOOL", "Create a new project");
 
-  console.log("  PROJECT SETUP");
-  console.log("");
-
-  const start = await select({
-    message: "Create project:",
+  const start = await selectMenu({
+    title: "DEVTOOL",
+    subtitle: "Create a new project",
+    section: "PROJECT SETUP",
     choices: [
       {
         name: "Continue",
+        icon: "▶",
         value: "continue",
       },
       {
         name: "Back",
+        icon: "←",
         value: "cancel",
       },
     ],
-    loop: false,
   });
 
-  if (start === "cancel") {
+  if (start.action === "back" || start.value === "cancel") {
     return;
   }
+
+  disableKeyboard();
 
   console.clear();
 
@@ -99,55 +105,54 @@ async function createProject() {
     return;
   }
 
-  console.clear();
-
-  drawHeader("DEVTOOL", "Choose a project template");
-
-  console.log("  TEMPLATES");
-  console.log("");
-
-  const template = await select({
-    message: "Choose:",
+  const templateResult = await selectMenu({
+    title: "DEVTOOL",
+    subtitle: "Choose a project template",
+    section: "TEMPLATES",
     choices: [
       {
         name: "Empty project",
+        icon: "📦",
         value: "empty",
       },
       {
         name: "Node.js project",
+        icon: "📦",
         value: "node",
       },
       {
         name: "Node.js + Express",
+        icon: "📦",
         value: "express",
       },
       {
         name: "Web",
+        icon: "🌐",
         value: "web",
       },
       {
         name: "Web + SCSS",
+        icon: "🌐",
         value: "web-scss",
       },
       {
         name: "JavaScript App",
+        icon: "📜",
         value: "javascript",
       },
       {
         name: "Boilerplate",
+        icon: "📦",
         value: "boilerplate",
       },
-      {
-        name: "Back",
-        value: "cancel",
-      },
     ],
-    loop: false,
   });
 
-  if (template === "cancel") {
+  if (templateResult.action === "back") {
     return;
   }
+
+  const template = templateResult.value;
 
   config.lastProjectLocation = projectLocation;
   saveConfig(config);
@@ -230,6 +235,8 @@ async function createProject() {
 }
 
 async function listProjects() {
+  disableKeyboard();
+
   console.clear();
 
   const { projectsLocation } = loadConfig();
@@ -256,57 +263,61 @@ async function main() {
 
   if (process.argv[2]) {
     console.error(`Unknown command: ${process.argv[2]}`);
+
     process.exitCode = 1;
     return;
   }
 
   while (true) {
-    console.clear();
-
-    drawHeader("DEVTOOL", "Project Launcher");
-
-    console.log("  QUICK ACTIONS");
-    console.log("");
-
-    const answer = await select({
-      message: "Select:",
+    const answer = await selectMenu({
+      title: "DEVTOOL",
+      subtitle: "Project Launcher",
+      section: "QUICK ACTIONS",
       choices: [
         {
           name: "Projects",
+          icon: "📦",
           value: "list",
         },
         {
           name: "Create project",
+          icon: "＋",
           value: "create",
         },
         {
           name: "Settings",
+          icon: "⚙",
           value: "settings",
         },
         {
           name: "Quit",
+          icon: "✕",
           value: "exit",
         },
       ],
-      loop: false,
     });
 
-    if (answer === "create") {
+    if (answer.action === "back") {
+      continue;
+    }
+
+    if (answer.value === "create") {
       await createProject();
     }
 
-    if (answer === "list") {
+    if (answer.value === "list") {
       await listProjects();
     }
 
-    if (answer === "settings") {
+    if (answer.value === "settings") {
       await openSettings();
     }
 
-    if (answer === "exit") {
+    if (answer.value === "exit") {
       console.clear();
 
       drawHeader("DEVTOOL", "Project Launcher");
+
       drawFooter("Goodbye");
 
       return;

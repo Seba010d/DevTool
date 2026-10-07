@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const readline = require("readline");
 const { input } = require("@inquirer/prompts");
 const { execFile, spawn } = require("child_process");
 
@@ -8,8 +7,8 @@ const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
 const { addRecentProject, loadConfig } = require("./config");
 const { drawHeader, success, error } = require("./ui");
-
-readline.emitKeypressEvents(process.stdin);
+const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
+const { drawKeybindings, renderMenu, moveSelection, isBackKey } = require("./menu");
 
 function getProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -23,68 +22,6 @@ function getProjectConfig(projectPath) {
   } catch {
     return null;
   }
-}
-
-function clearScreen() {
-  process.stdout.write("\x1b[2J\x1b[H");
-}
-
-function disableRawMode() {
-  if (process.stdin.isTTY) {
-    process.stdin.setRawMode(false);
-  }
-
-  process.stdin.pause();
-  process.stdout.write("\x1b[?25h");
-}
-
-function enableRawMode() {
-  if (process.stdin.isTTY) {
-    process.stdin.setRawMode(true);
-  }
-
-  process.stdin.resume();
-  process.stdout.write("\x1b[?25l");
-}
-
-function waitForKey() {
-  return new Promise((resolve) => {
-    const onKeypress = (str, key) => {
-      process.stdin.removeListener("keypress", onKeypress);
-
-      resolve({
-        str,
-        key,
-      });
-    };
-
-    process.stdin.on("keypress", onKeypress);
-  });
-}
-
-function drawKeybindings(bindings = "↑↓ Navigate    Enter Select    Q Back") {
-  console.log("");
-  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
-  console.log("");
-  console.log(`  ${bindings}`);
-}
-
-function renderMenu(title, subtitle, section, choices, selectedIndex) {
-  clearScreen();
-
-  drawHeader(title, subtitle);
-
-  console.log(`  ${section}`);
-  console.log("");
-
-  choices.forEach((choice, index) => {
-    const pointer = index === selectedIndex ? "❯" : " ";
-    const icon = choice.icon.padEnd(3, " ");
-
-    console.log(`${pointer}  ${icon} ${choice.name}`);
-  });
-
-  drawKeybindings();
 }
 
 async function openMenu(projectPath) {
@@ -108,41 +45,43 @@ async function openMenu(projectPath) {
 
   let selectedIndex = 0;
 
-  enableRawMode();
+  enableKeyboard();
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / OPEN", path.basename(projectPath), "OPEN PROJECT", choices, selectedIndex);
+      renderMenu({
+        title: "DEVTOOL / OPEN",
+        subtitle: path.basename(projectPath),
+        section: "OPEN PROJECT",
+        choices,
+        selectedIndex,
+      });
 
-      const { str, key } = await waitForKey();
+      const key = await waitForKey();
 
-      if (key?.name === "up") {
-        if (selectedIndex > 0) {
-          selectedIndex--;
-        }
-
-        continue;
-      }
-
-      if (key?.name === "down") {
-        if (selectedIndex < choices.length - 1) {
-          selectedIndex++;
-        }
+      if (key.name === "up") {
+        selectedIndex = moveSelection(selectedIndex, "up", choices.length);
 
         continue;
       }
 
-      if (key?.name === "escape" || str === "q" || str === "Q") {
+      if (key.name === "down") {
+        selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
+        continue;
+      }
+
+      if (isBackKey(key)) {
         return;
       }
 
-      if (key?.name !== "return") {
+      if (key.name !== "return") {
         continue;
       }
 
       const choice = choices[selectedIndex].value;
 
-      disableRawMode();
+      disableKeyboard();
 
       if (choice === "code") {
         execFile("code", [projectPath], (errorObject) => {
@@ -199,10 +138,10 @@ async function openMenu(projectPath) {
         });
       }
 
-      enableRawMode();
+      enableKeyboard();
     }
   } finally {
-    disableRawMode();
+    disableKeyboard();
   }
 }
 
@@ -227,41 +166,43 @@ async function runMenu(projectPath) {
 
   let selectedIndex = 0;
 
-  enableRawMode();
+  enableKeyboard();
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / RUN", path.basename(projectPath), "PROJECT", choices, selectedIndex);
+      renderMenu({
+        title: "DEVTOOL / RUN",
+        subtitle: path.basename(projectPath),
+        section: "PROJECT",
+        choices,
+        selectedIndex,
+      });
 
-      const { str, key } = await waitForKey();
+      const key = await waitForKey();
 
-      if (key?.name === "up") {
-        if (selectedIndex > 0) {
-          selectedIndex--;
-        }
-
-        continue;
-      }
-
-      if (key?.name === "down") {
-        if (selectedIndex < choices.length - 1) {
-          selectedIndex++;
-        }
+      if (key.name === "up") {
+        selectedIndex = moveSelection(selectedIndex, "up", choices.length);
 
         continue;
       }
 
-      if (key?.name === "escape" || str === "q" || str === "Q") {
+      if (key.name === "down") {
+        selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
+        continue;
+      }
+
+      if (isBackKey(key)) {
         return;
       }
 
-      if (key?.name !== "return") {
+      if (key.name !== "return") {
         continue;
       }
 
       const choice = choices[selectedIndex].value;
 
-      disableRawMode();
+      disableKeyboard();
 
       if (choice === "run") {
         runProject(projectPath);
@@ -277,6 +218,7 @@ async function runMenu(projectPath) {
         drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
 
         console.log("  INSTALLING DEPENDENCIES");
+
         console.log("");
 
         const child = spawn("npm", ["install"], {
@@ -295,23 +237,24 @@ async function runMenu(projectPath) {
         });
       }
 
-      enableRawMode();
+      enableKeyboard();
     }
   } finally {
-    disableRawMode();
+    disableKeyboard();
   }
 }
 
 async function showProjectInfo(projectPath) {
   const config = getProjectConfig(projectPath);
 
-  disableRawMode();
+  disableKeyboard();
 
   clearScreen();
 
   drawHeader("DEVTOOL / INFO", path.basename(projectPath));
 
   console.log("  PROJECT INFORMATION");
+
   console.log("");
 
   console.log(`  Name       ${config?.name || path.basename(projectPath)}`);
@@ -327,15 +270,15 @@ async function showProjectInfo(projectPath) {
   console.log("");
   console.log(`  Path       ${projectPath}`);
 
-  await input({
-    message: "Press Enter to continue",
-  });
+  drawKeybindings("Enter Continue    Q Back");
 
-  enableRawMode();
+  await waitForKey();
+
+  enableKeyboard();
 }
 
 async function renameProject(projectPath) {
-  disableRawMode();
+  disableKeyboard();
 
   const oldName = path.basename(projectPath);
 
@@ -351,7 +294,7 @@ async function renameProject(projectPath) {
   ).trim();
 
   if (!newName || newName === oldName) {
-    enableRawMode();
+    enableKeyboard();
     return projectPath;
   }
 
@@ -364,7 +307,7 @@ async function renameProject(projectPath) {
       message: "Press Enter to continue",
     });
 
-    enableRawMode();
+    enableKeyboard();
 
     return projectPath;
   }
@@ -389,13 +332,13 @@ async function renameProject(projectPath) {
     message: "Press Enter to continue",
   });
 
-  enableRawMode();
+  enableKeyboard();
 
   return newPath;
 }
 
 async function moveProject(projectPath) {
-  disableRawMode();
+  disableKeyboard();
 
   clearScreen();
 
@@ -406,7 +349,7 @@ async function moveProject(projectPath) {
   const destination = await chooseFolder(config.projectsLocation);
 
   if (!destination) {
-    enableRawMode();
+    enableKeyboard();
     return projectPath;
   }
 
@@ -419,7 +362,7 @@ async function moveProject(projectPath) {
       message: "Press Enter to continue",
     });
 
-    enableRawMode();
+    enableKeyboard();
 
     return projectPath;
   }
@@ -432,13 +375,13 @@ async function moveProject(projectPath) {
     message: "Press Enter to continue",
   });
 
-  enableRawMode();
+  enableKeyboard();
 
   return newPath;
 }
 
 async function deleteProject(projectPath) {
-  disableRawMode();
+  disableKeyboard();
 
   clearScreen();
 
@@ -453,7 +396,7 @@ async function deleteProject(projectPath) {
   });
 
   if (confirmation !== "DELETE") {
-    enableRawMode();
+    enableKeyboard();
     return false;
   }
 
@@ -468,7 +411,7 @@ async function deleteProject(projectPath) {
     message: "Press Enter to continue",
   });
 
-  enableRawMode();
+  enableKeyboard();
 
   return true;
 }
@@ -499,38 +442,40 @@ async function manageMenu(projectPath) {
 
   let selectedIndex = 0;
 
-  enableRawMode();
+  enableKeyboard();
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / MANAGE", path.basename(projectPath), "MANAGEMENT", choices, selectedIndex);
+      renderMenu({
+        title: "DEVTOOL / MANAGE",
+        subtitle: path.basename(projectPath),
+        section: "MANAGEMENT",
+        choices,
+        selectedIndex,
+      });
 
-      const { str, key } = await waitForKey();
+      const key = await waitForKey();
 
-      if (key?.name === "up") {
-        if (selectedIndex > 0) {
-          selectedIndex--;
-        }
-
-        continue;
-      }
-
-      if (key?.name === "down") {
-        if (selectedIndex < choices.length - 1) {
-          selectedIndex++;
-        }
+      if (key.name === "up") {
+        selectedIndex = moveSelection(selectedIndex, "up", choices.length);
 
         continue;
       }
 
-      if (key?.name === "escape" || str === "q" || str === "Q") {
+      if (key.name === "down") {
+        selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
+        continue;
+      }
+
+      if (isBackKey(key)) {
         return {
           path: projectPath,
           deleted: false,
         };
       }
 
-      if (key?.name !== "return") {
+      if (key.name !== "return") {
         continue;
       }
 
@@ -560,7 +505,7 @@ async function manageMenu(projectPath) {
       }
     }
   } finally {
-    disableRawMode();
+    disableKeyboard();
   }
 }
 
@@ -587,35 +532,37 @@ async function projectActions(projectPath) {
 
   let selectedIndex = 0;
 
-  enableRawMode();
+  enableKeyboard();
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / PROJECT", path.basename(projectPath), "ACTIONS", choices, selectedIndex);
+      renderMenu({
+        title: "DEVTOOL / PROJECT",
+        subtitle: path.basename(projectPath),
+        section: "ACTIONS",
+        choices,
+        selectedIndex,
+      });
 
-      const { str, key } = await waitForKey();
+      const key = await waitForKey();
 
-      if (key?.name === "up") {
-        if (selectedIndex > 0) {
-          selectedIndex--;
-        }
-
-        continue;
-      }
-
-      if (key?.name === "down") {
-        if (selectedIndex < choices.length - 1) {
-          selectedIndex++;
-        }
+      if (key.name === "up") {
+        selectedIndex = moveSelection(selectedIndex, "up", choices.length);
 
         continue;
       }
 
-      if (key?.name === "escape" || str === "q" || str === "Q") {
+      if (key.name === "down") {
+        selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
+        continue;
+      }
+
+      if (isBackKey(key)) {
         return;
       }
 
-      if (key?.name !== "return") {
+      if (key.name !== "return") {
         continue;
       }
 
@@ -623,12 +570,12 @@ async function projectActions(projectPath) {
 
       if (choice === "open") {
         await openMenu(projectPath);
-        enableRawMode();
+        enableKeyboard();
       }
 
       if (choice === "run") {
         await runMenu(projectPath);
-        enableRawMode();
+        enableKeyboard();
       }
 
       if (choice === "manage") {
@@ -640,11 +587,11 @@ async function projectActions(projectPath) {
 
         projectPath = result.path;
 
-        enableRawMode();
+        enableKeyboard();
       }
     }
   } finally {
-    disableRawMode();
+    disableKeyboard();
   }
 }
 
