@@ -1,11 +1,14 @@
 const fs = require("fs");
 const path = require("path");
+const readline = require("readline");
 const { input } = require("@inquirer/prompts");
 
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
 const { drawHeader, info } = require("./ui");
+
+readline.emitKeypressEvents(process.stdin);
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -82,7 +85,7 @@ function clearScreen() {
   process.stdout.write("\x1b[2J\x1b[H");
 }
 
-function disableRawMode() {
+function disableKeyboard() {
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(false);
   }
@@ -92,88 +95,47 @@ function disableRawMode() {
   process.stdout.write("\x1b[?25h");
 }
 
-function enableRawMode() {
+function enableKeyboard() {
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
   }
 
   process.stdin.resume();
-  process.stdin.setEncoding("utf8");
 
   process.stdout.write("\x1b[?25l");
 }
 
 function waitForKey() {
   return new Promise((resolve) => {
-    let buffer = "";
+    const onKeypress = (str, key) => {
+      process.stdin.removeListener("keypress", onKeypress);
 
-    const onData = (data) => {
-      buffer += data;
-
-      if (buffer === "\u001b") {
-        setTimeout(() => {
-          if (buffer === "\u001b") {
-            process.stdin.removeListener("data", onData);
-
-            resolve("escape");
-          }
-        }, 50);
-
-        return;
-      }
-
-      if (buffer.startsWith("\u001b[")) {
-        if (buffer.endsWith("A")) {
-          process.stdin.removeListener("data", onData);
-
-          resolve("up");
-          return;
-        }
-
-        if (buffer.endsWith("B")) {
-          process.stdin.removeListener("data", onData);
-
-          resolve("down");
-          return;
-        }
-      }
-
-      if (buffer === "\r" || buffer === "\n") {
-        process.stdin.removeListener("data", onData);
-
-        resolve("enter");
-        return;
-      }
-
-      if (buffer === "/") {
-        process.stdin.removeListener("data", onData);
-
-        resolve("search");
-        return;
-      }
-
-      if (buffer === "q" || buffer === "Q") {
-        process.stdin.removeListener("data", onData);
-
-        resolve("back");
-        return;
-      }
-
-      if (buffer.length === 1) {
-        process.stdin.removeListener("data", onData);
-
-        resolve(buffer);
-      }
+      resolve({
+        str,
+        key,
+      });
     };
 
-    process.stdin.on("data", onData);
+    process.stdin.on("keypress", onKeypress);
   });
+}
+
+function drawKeybindings(bindings = "↑↓ Navigate    Enter Select    Q Back") {
+  console.log("");
+
+  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+
+  console.log("");
+
+  console.log(`  ${bindings}`);
 }
 
 function renderEntry(entry, selected) {
   const pointer = selected ? "❯" : " ";
 
-  const left = `${pointer}  ${entry.icon}  ${entry.name}`;
+  const icon = entry.icon.padEnd(3, " ");
+
+  const left = `${pointer}  ${icon} ${entry.name}`;
 
   if (!entry.projectType) {
     return left;
@@ -183,7 +145,7 @@ function renderEntry(entry, selected) {
 
   const spacing = Math.max(2, nameColumnWidth - left.length);
 
-  return `${left}${" ".repeat(spacing)}${entry.projectType}`;
+  return left + " ".repeat(spacing) + entry.projectType;
 }
 
 function renderProjectList(currentPath, entries, selectedIndex) {
@@ -204,17 +166,11 @@ function renderProjectList(currentPath, entries, selectedIndex) {
     console.log(renderEntry(entry, index === selectedIndex));
   });
 
-  console.log("");
-
-  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
-
-  console.log("");
-
-  console.log("  ↑↓ Navigate    Enter Select    / Search    Q Back");
+  drawKeybindings();
 }
 
 async function searchProjects(startPath) {
-  disableRawMode();
+  disableKeyboard();
 
   clearScreen();
 
@@ -232,7 +188,7 @@ async function searchProjects(startPath) {
     .toLowerCase();
 
   if (!query) {
-    enableRawMode();
+    enableKeyboard();
     return;
   }
 
@@ -246,9 +202,10 @@ async function searchProjects(startPath) {
     info(`No projects matching "${query}" were found.`);
 
     console.log("");
+
     console.log("  Press any key to continue...");
 
-    enableRawMode();
+    enableKeyboard();
 
     await waitForKey();
 
@@ -263,7 +220,7 @@ async function searchProjects(startPath) {
     projectType: getProjectType(projectPath),
   }));
 
-  enableRawMode();
+  enableKeyboard();
 
   let selectedIndex = 0;
 
@@ -280,17 +237,11 @@ async function searchProjects(startPath) {
       console.log(renderEntry(entry, index === selectedIndex));
     });
 
-    console.log("");
+    drawKeybindings();
 
-    console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+    const { str, key } = await waitForKey();
 
-    console.log("");
-
-    console.log("  ↑↓ Navigate    Enter Select    Q Back");
-
-    const key = await waitForKey();
-
-    if (key === "up") {
+    if (key?.name === "up") {
       if (selectedIndex > 0) {
         selectedIndex--;
       }
@@ -298,7 +249,7 @@ async function searchProjects(startPath) {
       continue;
     }
 
-    if (key === "down") {
+    if (key?.name === "down") {
       if (selectedIndex < entries.length - 1) {
         selectedIndex++;
       }
@@ -306,17 +257,17 @@ async function searchProjects(startPath) {
       continue;
     }
 
-    if (key === "enter") {
-      disableRawMode();
-
-      await projectActions(entries[selectedIndex].path);
-
-      enableRawMode();
-
+    if (key?.name === "escape" || str === "q" || str === "Q") {
       return;
     }
 
-    if (key === "back" || key === "escape") {
+    if (key?.name === "return") {
+      disableKeyboard();
+
+      await projectActions(entries[selectedIndex].path);
+
+      enableKeyboard();
+
       return;
     }
   }
@@ -325,7 +276,7 @@ async function searchProjects(startPath) {
 async function browseProjects(startPath) {
   let currentPath = startPath;
 
-  enableRawMode();
+  enableKeyboard();
 
   try {
     while (true) {
@@ -336,9 +287,9 @@ async function browseProjects(startPath) {
       while (true) {
         renderProjectList(currentPath, entries, selectedIndex);
 
-        const key = await waitForKey();
+        const { str, key } = await waitForKey();
 
-        if (key === "up") {
+        if (key?.name === "up") {
           if (selectedIndex > 0) {
             selectedIndex--;
           }
@@ -346,7 +297,7 @@ async function browseProjects(startPath) {
           continue;
         }
 
-        if (key === "down") {
+        if (key?.name === "down") {
           if (selectedIndex < entries.length - 1) {
             selectedIndex++;
           }
@@ -354,7 +305,17 @@ async function browseProjects(startPath) {
           continue;
         }
 
-        if (key === "enter") {
+        if (key?.name === "escape" || str === "q" || str === "Q") {
+          if (currentPath === startPath) {
+            return;
+          }
+
+          currentPath = path.dirname(currentPath);
+
+          break;
+        }
+
+        if (key?.name === "return") {
           if (!entries.length) {
             continue;
           }
@@ -362,11 +323,11 @@ async function browseProjects(startPath) {
           const selected = entries[selectedIndex];
 
           if (selected.type === "project") {
-            disableRawMode();
+            disableKeyboard();
 
             await projectActions(selected.path);
 
-            enableRawMode();
+            enableKeyboard();
 
             break;
           }
@@ -378,37 +339,17 @@ async function browseProjects(startPath) {
           }
         }
 
-        if (key === "search") {
+        if (str === "/") {
           await searchProjects(startPath);
 
-          enableRawMode();
-
-          break;
-        }
-
-        if (key === "back") {
-          if (currentPath === startPath) {
-            return;
-          }
-
-          currentPath = path.dirname(currentPath);
-
-          break;
-        }
-
-        if (key === "escape") {
-          if (currentPath === startPath) {
-            return;
-          }
-
-          currentPath = path.dirname(currentPath);
+          enableKeyboard();
 
           break;
         }
       }
     }
   } finally {
-    disableRawMode();
+    disableKeyboard();
   }
 }
 
