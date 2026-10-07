@@ -1,4 +1,5 @@
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
+const { drawHeader } = require("./ui");
 
 const DEFAULT_KEYBINDINGS = "↑↓ Navigate    Enter Select    Q Back";
 
@@ -30,18 +31,14 @@ function padDisplayWidth(value, width) {
 
 function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   console.log("");
-
   console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
-
   console.log("");
-
   console.log(`  ${bindings}`);
 }
 
 function renderChoice(choice, selected) {
   const pointer = selected ? "❯" : " ";
   const icon = choice.icon || "";
-
   const iconColumn = padDisplayWidth(icon, 2);
 
   return `${pointer}  ${iconColumn}  ${choice.name}`;
@@ -53,14 +50,7 @@ function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, head
   if (header) {
     header();
   } else {
-    console.log("");
-    console.log(`  ${title}`);
-
-    if (subtitle) {
-      console.log(`  ${subtitle}`);
-    }
-
-    console.log("");
+    drawHeader(title, subtitle);
   }
 
   if (section) {
@@ -117,13 +107,11 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
-
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
         continue;
       }
 
@@ -154,13 +142,11 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
 }
 
 module.exports = {
-  DEFAULT_KEYBINDINGS,
+  selectMenu,
+  renderMenu,
+  renderChoice,
+  drawKeybindings,
+  moveSelection,
   getDisplayWidth,
   padDisplayWidth,
-  drawKeybindings,
-  renderChoice,
-  renderMenu,
-  moveSelection,
-  isBackKey,
-  selectMenu,
 };
