@@ -24,7 +24,7 @@ function disableKeyboard() {
     process.stdin.setRawMode(false);
   }
 
-  process.stdin.resume();
+  process.stdin.pause();
   process.stdout.write("\x1b[?25h");
 
   rawModeEnabled = false;
@@ -142,10 +142,18 @@ async function getKey() {
   return waitForKey();
 }
 
+function exitProcess(code = 0) {
+  disableKeyboard();
+  process.stdout.write("\x1b[?25h");
+  process.stdin.pause();
+  process.exit(code);
+}
+
 module.exports = {
   enableKeyboard,
   disableKeyboard,
   clearScreen,
   waitForKey,
   getKey,
+  exitProcess,
 };

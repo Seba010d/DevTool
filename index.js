@@ -10,7 +10,7 @@ const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
 const { selectMenu } = require("./utils/menu");
-const { disableKeyboard } = require("./utils/keyboard");
+const { disableKeyboard, exitProcess } = require("./utils/keyboard");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -314,20 +314,22 @@ async function main() {
     }
 
     if (answer.value === "exit") {
+      disableKeyboard();
+
       console.clear();
 
       drawHeader("DEVTOOL", "Project Launcher");
 
       drawFooter("Goodbye");
 
-      return;
+      exitProcess(0);
     }
   }
 }
 
 main().catch((errorObject) => {
   if (errorObject.name === "ExitPromptError") {
-    return;
+    exitProcess(0);
   }
 
   console.error(errorObject.message);
