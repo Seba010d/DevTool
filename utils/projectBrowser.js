@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { select, input } = require("@inquirer/prompts");
+const { input } = require("@inquirer/prompts");
 
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
@@ -21,165 +21,315 @@ function loadProjectConfig(projectPath) {
   }
 }
 
-async function browseProjects(startPath) {
-  let currentPath = startPath;
+function getProjectType(projectPath) {
+  const config = loadProjectConfig(projectPath);
 
-  while (true) {
-    console.clear();
+  if (!config?.projectType) {
+    return null;
+  }
 
-    drawHeader("DEVTOOL / PROJECTS", path.relative(process.env.HOME || "", currentPath) || currentPath);
+  if (config.projectType === "node") {
+    return "Node.js";
+  }
 
-    console.log("  PROJECTS");
-    console.log("");
+  if (config.projectType === "web") {
+    return "Web";
+  }
 
-    const entries = fs
-      .readdirSync(currentPath, {
-        withFileTypes: true,
-      })
-      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+  if (config.projectType === "javascript") {
+    return "JavaScript";
+  }
 
-    const choices = entries.map((entry) => {
+  if (config.projectType === "boilerplate") {
+    return "Project";
+  }
+
+  return config.projectType;
+}
+
+function getEntries(currentPath) {
+  return fs
+    .readdirSync(currentPath, {
+      withFileTypes: true,
+    })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
-
       const project = isProject(entryPath);
-      const config = project ? loadProjectConfig(entryPath) : null;
-
-      let name = `${project ? "📦" : "📁"}  ${entry.name}`;
-
-      if (config?.projectType) {
-        name += ` [${config.projectType}]`;
-      }
 
       return {
-        name,
-        value: {
-          type: project ? "project" : "folder",
-          path: entryPath,
-        },
+        name: entry.name,
+        path: entryPath,
+        type: project ? "project" : "folder",
+        icon: project ? "📦" : "📁",
+        projectType: project ? getProjectType(entryPath) : null,
       };
+    })
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+      }),
+    );
+}
+
+function clearScreen() {
+  process.stdout.write("\x1b[2J\x1b[H");
+}
+
+function disableRawMode() {
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(false);
+  }
+
+  process.stdin.pause();
+}
+
+function enableRawMode() {
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
+
+  process.stdin.resume();
+  process.stdin.setEncoding("utf8");
+}
+
+function waitForKey() {
+  return new Promise((resolve) => {
+    const onData = (key) => {
+      process.stdin.removeListener("data", onData);
+      resolve(key);
+    };
+
+    process.stdin.on("data", onData);
+  });
+}
+
+function renderEntry(entry, selected) {
+  const pointer = selected ? "❯" : " ";
+  const left = `${pointer}  ${entry.icon}  ${entry.name}`;
+
+  if (!entry.projectType) {
+    return left;
+  }
+
+  const nameColumnWidth = 34;
+  const spacing = Math.max(2, nameColumnWidth - left.length);
+
+  return `${left}${" ".repeat(spacing)}${entry.projectType}`;
+}
+
+function renderProjectList(currentPath, entries, selectedIndex) {
+  clearScreen();
+
+  drawHeader("DEVTOOL", `Projects · ${path.relative(process.env.HOME || "", currentPath) || currentPath}`);
+
+  console.log("  PROJECTS");
+  console.log("");
+
+  if (!entries.length) {
+    console.log("  No projects or folders found.");
+    console.log("");
+  }
+
+  entries.forEach((entry, index) => {
+    console.log(renderEntry(entry, index === selectedIndex));
+  });
+
+  console.log("");
+  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+  console.log("");
+  console.log("  ↑↓ Navigate    Enter Select    / Search    Q Back");
+}
+
+async function searchProjects(startPath) {
+  disableRawMode();
+
+  clearScreen();
+
+  drawHeader("DEVTOOL", "Search projects");
+
+  console.log("  SEARCH");
+  console.log("");
+
+  const query = (
+    await input({
+      message: "Project name:",
+    })
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!query) {
+    enableRawMode();
+    return;
+  }
+
+  const matches = scanProjects(startPath).filter((projectPath) => path.basename(projectPath).toLowerCase().includes(query));
+
+  if (!matches.length) {
+    clearScreen();
+
+    drawHeader("DEVTOOL", "Search");
+
+    info(`No projects matching "${query}" were found.`);
+
+    console.log("");
+    console.log("  Press any key to continue...");
+
+    enableRawMode();
+
+    await waitForKey();
+
+    return;
+  }
+
+  const entries = matches.map((projectPath) => ({
+    name: path.basename(projectPath),
+    path: projectPath,
+    type: "project",
+    icon: "📦",
+    projectType: getProjectType(projectPath),
+  }));
+
+  enableRawMode();
+
+  let selectedIndex = 0;
+
+  while (true) {
+    clearScreen();
+
+    drawHeader("DEVTOOL", `Search · ${entries.length} result${entries.length === 1 ? "" : "s"}`);
+
+    console.log(`  RESULTS · "${query}"`);
+    console.log("");
+
+    entries.forEach((entry, index) => {
+      console.log(renderEntry(entry, index === selectedIndex));
     });
 
-    choices.push({
-      name: "🔎  Search projects",
-      value: {
-        type: "search",
-      },
-    });
+    console.log("");
+    console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+    console.log("");
+    console.log("  ↑↓ Navigate    Enter Select    Q Back");
 
-    if (currentPath === startPath) {
-      choices.push({
-        name: "←  Back to main menu",
-        value: {
-          type: "main",
-        },
-      });
-    } else {
-      choices.push({
-        name: "←  Go back",
-        value: {
-          type: "back",
-        },
-      });
-    }
+    const key = await waitForKey();
 
-    const selected = await select({
-      message: "Select:",
-      choices,
-      loop: false,
-    });
-
-    if (selected.type === "search") {
-      console.clear();
-
-      drawHeader("DEVTOOL / SEARCH", "Search projects");
-
-      console.log("  SEARCH");
-      console.log("");
-
-      const query = (
-        await input({
-          message: "Project name:",
-        })
-      )
-        .trim()
-        .toLowerCase();
-
-      if (!query) {
-        continue;
-      }
-
-      const matches = scanProjects(startPath).filter((projectPath) => path.basename(projectPath).toLowerCase().includes(query));
-
-      if (!matches.length) {
-        console.clear();
-
-        drawHeader("DEVTOOL / SEARCH", "No results");
-
-        info(`No projects matching "${query}" were found.`);
-
-        await input({
-          message: "Press Enter to continue",
-        });
-
-        continue;
-      }
-
-      console.clear();
-
-      drawHeader("DEVTOOL / SEARCH", `${matches.length} result${matches.length === 1 ? "" : "s"}`);
-
-      console.log("  RESULTS");
-      console.log("");
-
-      const found = await select({
-        message: "Select:",
-        choices: [
-          ...matches.map((projectPath) => {
-            const config = loadProjectConfig(projectPath);
-
-            let name = `📦  ${path.basename(projectPath)}`;
-
-            if (config?.projectType) {
-              name += ` [${config.projectType}]`;
-            }
-
-            return {
-              name,
-              value: projectPath,
-            };
-          }),
-          {
-            name: "←  Back",
-            value: null,
-          },
-        ],
-        loop: false,
-      });
-
-      if (found) {
-        await projectActions(found);
+    if (key === "\u001b[A") {
+      if (selectedIndex > 0) {
+        selectedIndex--;
       }
 
       continue;
     }
 
-    if (selected.type === "project") {
-      await projectActions(selected.path);
+    if (key === "\u001b[B") {
+      if (selectedIndex < entries.length - 1) {
+        selectedIndex++;
+      }
+
       continue;
     }
 
-    if (selected.type === "main") {
+    if (key === "\r" || key === "\n") {
+      disableRawMode();
+
+      await projectActions(entries[selectedIndex].path);
+
+      enableRawMode();
+
       return;
     }
 
-    if (selected.type === "back") {
-      currentPath = path.dirname(currentPath);
-      continue;
+    if (key === "q" || key === "Q" || key === "\u001b") {
+      return;
     }
+  }
+}
 
-    if (selected.type === "folder") {
-      currentPath = selected.path;
+async function browseProjects(startPath) {
+  let currentPath = startPath;
+
+  enableRawMode();
+
+  try {
+    while (true) {
+      const entries = getEntries(currentPath);
+
+      let selectedIndex = 0;
+
+      while (true) {
+        renderProjectList(currentPath, entries, selectedIndex);
+
+        const key = await waitForKey();
+
+        if (key === "\u001b[A") {
+          if (selectedIndex > 0) {
+            selectedIndex--;
+          }
+
+          continue;
+        }
+
+        if (key === "\u001b[B") {
+          if (selectedIndex < entries.length - 1) {
+            selectedIndex++;
+          }
+
+          continue;
+        }
+
+        if (key === "\r" || key === "\n") {
+          if (!entries.length) {
+            continue;
+          }
+
+          const selected = entries[selectedIndex];
+
+          if (selected.type === "project") {
+            disableRawMode();
+
+            await projectActions(selected.path);
+
+            enableRawMode();
+
+            break;
+          }
+
+          if (selected.type === "folder") {
+            currentPath = selected.path;
+            break;
+          }
+        }
+
+        if (key === "/") {
+          await searchProjects(startPath);
+
+          enableRawMode();
+
+          break;
+        }
+
+        if (key === "q" || key === "Q") {
+          if (currentPath === startPath) {
+            return;
+          }
+
+          currentPath = path.dirname(currentPath);
+          break;
+        }
+
+        if (key === "\u001b") {
+          if (currentPath === startPath) {
+            return;
+          }
+
+          currentPath = path.dirname(currentPath);
+          break;
+        }
+      }
     }
+  } finally {
+    disableRawMode();
   }
 }
 
