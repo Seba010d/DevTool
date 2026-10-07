@@ -2,6 +2,32 @@ const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./
 
 const DEFAULT_KEYBINDINGS = "↑↓ Navigate    Enter Select    Q Back";
 
+function getDisplayWidth(value) {
+  let width = 0;
+
+  for (const char of value) {
+    const code = char.codePointAt(0);
+
+    if ((code >= 0x1100 && code <= 0x115f) || (code >= 0x2329 && code <= 0x232a) || (code >= 0x2e80 && code <= 0x303e) || (code >= 0x3040 && code <= 0xa4cf) || (code >= 0xac00 && code <= 0xd7a3) || (code >= 0xf900 && code <= 0xfaff) || (code >= 0xfe10 && code <= 0xfe19) || (code >= 0xfe30 && code <= 0xfe6f) || (code >= 0xff00 && code <= 0xff60) || (code >= 0xffe0 && code <= 0xffe6) || (code >= 0x1f300 && code <= 0x1faff)) {
+      width += 2;
+    } else {
+      width += 1;
+    }
+  }
+
+  return width;
+}
+
+function padDisplayWidth(value, width) {
+  const currentWidth = getDisplayWidth(value);
+
+  if (currentWidth >= width) {
+    return value;
+  }
+
+  return value + " ".repeat(width - currentWidth);
+}
+
 function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   console.log("");
 
@@ -12,37 +38,13 @@ function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   console.log(`  ${bindings}`);
 }
 
-function getDisplayWidth(text) {
-  let width = 0;
-
-  for (const character of text) {
-    const code = character.codePointAt(0);
-
-    if ((code >= 0x1f300 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) {
-      width += 2;
-    } else {
-      width += 1;
-    }
-  }
-
-  return width;
-}
-
-function padDisplayWidth(text, width) {
-  const currentWidth = getDisplayWidth(text);
-
-  if (currentWidth >= width) {
-    return text;
-  }
-
-  return text + " ".repeat(width - currentWidth);
-}
-
 function renderChoice(choice, selected) {
   const pointer = selected ? "❯" : " ";
-  const icon = padDisplayWidth(choice.icon || "", 2);
+  const icon = choice.icon || "";
 
-  return `${pointer}  ${icon}  ${choice.name}`;
+  const iconColumn = padDisplayWidth(icon, 2);
+
+  return `${pointer}  ${iconColumn}  ${choice.name}`;
 }
 
 function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, header, footer = DEFAULT_KEYBINDINGS }) {
@@ -115,11 +117,13 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
 
       if (key.name === "up") {
         selectedIndex = moveSelection(selectedIndex, "up", choices.length);
+
         continue;
       }
 
       if (key.name === "down") {
         selectedIndex = moveSelection(selectedIndex, "down", choices.length);
+
         continue;
       }
 
@@ -151,6 +155,8 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
 
 module.exports = {
   DEFAULT_KEYBINDINGS,
+  getDisplayWidth,
+  padDisplayWidth,
   drawKeybindings,
   renderChoice,
   renderMenu,

@@ -7,7 +7,7 @@ const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
 const { drawHeader, info } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
-const { drawKeybindings, renderChoice, moveSelection, isBackKey } = require("./menu");
+const { drawKeybindings, renderChoice, getDisplayWidth, moveSelection, isBackKey } = require("./menu");
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -92,8 +92,9 @@ function renderEntry(entry, selected) {
     return line;
   }
 
-  const nameColumnWidth = 34;
-  const spacing = Math.max(2, nameColumnWidth - line.length);
+  const typeColumn = 38;
+  const lineWidth = getDisplayWidth(line);
+  const spacing = Math.max(4, typeColumn - lineWidth);
 
   return line + " ".repeat(spacing) + entry.projectType;
 }
@@ -108,7 +109,6 @@ function renderProjectList(currentPath, entries, selectedIndex) {
 
   if (!entries.length) {
     console.log("  No projects or folders found.");
-
     console.log("");
   }
 
@@ -179,7 +179,6 @@ async function searchProjects(startPath) {
     drawHeader("DEVTOOL", `Search · ${entries.length} result${entries.length === 1 ? "" : "s"}`);
 
     console.log(`  RESULTS · "${query}"`);
-
     console.log("");
 
     entries.forEach((entry, index) => {

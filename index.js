@@ -2,7 +2,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const { input } = require("@inquirer/prompts");
 
 const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
@@ -10,7 +9,9 @@ const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
 const { selectMenu } = require("./utils/menu");
-const { disableKeyboard, exitProcess } = require("./utils/keyboard");
+const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
+
+const { isBackKey: menuIsBackKey } = require("./utils/menu");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -33,21 +34,58 @@ function getDanishDateTime() {
     .replace(",", "");
 }
 
+async function getProjectName() {
+  enableKeyboard();
+
+  let value = "";
+
+  try {
+    while (true) {
+      console.clear();
+
+      drawHeader("DEVTOOL", "Create a new project");
+
+      console.log("  PROJECT SETUP");
+      console.log("");
+
+      console.log(`  Project name: ${value}`);
+      console.log("");
+
+      console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+
+      console.log("");
+      console.log("  Type name    Enter Continue    Q / Esc Back");
+
+      const key = await waitForKey();
+
+      if (menuIsBackKey(key)) {
+        return null;
+      }
+
+      if (key.name === "return") {
+        if (!value.trim()) {
+          continue;
+        }
+
+        return value.trim();
+      }
+
+      if (key.name === "backspace" || key.name === "\x7f") {
+        value = value.slice(0, -1);
+        continue;
+      }
+
+      if (typeof key.value === "string" && key.value.length === 1 && key.value >= " " && key.value !== "\x7f") {
+        value += key.value;
+      }
+    }
+  } finally {
+    disableKeyboard();
+  }
+}
+
 async function createProject() {
-  disableKeyboard();
-
-  console.clear();
-
-  drawHeader("DEVTOOL", "Create a new project");
-
-  console.log("  PROJECT SETUP");
-  console.log("");
-
-  const projectName = (
-    await input({
-      message: "Project name:",
-    })
-  ).trim();
+  const projectName = await getProjectName();
 
   if (!projectName) {
     return;
@@ -70,9 +108,11 @@ async function createProject() {
 
     error(`A project named "${projectName}" already exists.`);
 
-    await input({
-      message: "Press Enter to continue",
-    });
+    enableKeyboard();
+
+    await waitForKey();
+
+    disableKeyboard();
 
     return;
   }
@@ -201,9 +241,11 @@ async function createProject() {
 
   console.log(`  ${projectPath}`);
 
-  await input({
-    message: "Press Enter to continue",
-  });
+  enableKeyboard();
+
+  await waitForKey();
+
+  disableKeyboard();
 }
 
 async function listProjects() {
