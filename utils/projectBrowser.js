@@ -24,27 +24,32 @@ function loadProjectConfig(projectPath) {
 function getProjectType(projectPath) {
   const config = loadProjectConfig(projectPath);
 
-  if (!config?.projectType) {
+  if (!config) {
     return null;
   }
 
-  if (config.projectType === "node") {
-    return "Node.js";
-  }
+  switch (config.projectType) {
+    case "node":
+      return "Node.js";
 
-  if (config.projectType === "web") {
-    return "Web";
-  }
+    case "express":
+      return "Node.js";
 
-  if (config.projectType === "javascript") {
-    return "JavaScript";
-  }
+    case "web":
+      return "Web";
 
-  if (config.projectType === "boilerplate") {
-    return "Project";
-  }
+    case "javascript":
+      return "JavaScript";
 
-  return config.projectType;
+    case "boilerplate":
+      return "Project";
+
+    case "empty":
+      return "Project";
+
+    default:
+      return "Project";
+  }
 }
 
 function getEntries(currentPath) {
