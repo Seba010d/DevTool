@@ -1,12 +1,15 @@
 const fs = require("fs");
 const path = require("path");
-const { input, select } = require("@inquirer/prompts");
+const readline = require("readline");
+const { input } = require("@inquirer/prompts");
 const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
 const { addRecentProject, loadConfig } = require("./config");
-const { drawHeader, success, error, info } = require("./ui");
+const { drawHeader, success, error } = require("./ui");
+
+readline.emitKeypressEvents(process.stdin);
 
 function getProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -32,6 +35,7 @@ function disableRawMode() {
   }
 
   process.stdin.pause();
+  process.stdout.write("\x1b[?25h");
 }
 
 function enableRawMode() {
@@ -40,28 +44,32 @@ function enableRawMode() {
   }
 
   process.stdin.resume();
-  process.stdin.setEncoding("utf8");
+  process.stdout.write("\x1b[?25l");
 }
 
 function waitForKey() {
   return new Promise((resolve) => {
-    const onData = (key) => {
-      process.stdin.removeListener("data", onData);
-      resolve(key);
+    const onKeypress = (str, key) => {
+      process.stdin.removeListener("keypress", onKeypress);
+
+      resolve({
+        str,
+        key,
+      });
     };
 
-    process.stdin.on("data", onData);
+    process.stdin.on("keypress", onKeypress);
   });
 }
 
-function drawKeybindings(bindings) {
+function drawKeybindings(bindings = "↑↓ Navigate    Enter Select    Q Back") {
   console.log("");
   console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
   console.log("");
   console.log(`  ${bindings}`);
 }
 
-function renderMenu(title, subtitle, section, choices, selectedIndex, bindings = "↑↓ Navigate    Enter Select    Q Back") {
+function renderMenu(title, subtitle, section, choices, selectedIndex) {
   clearScreen();
 
   drawHeader(title, subtitle);
@@ -71,11 +79,12 @@ function renderMenu(title, subtitle, section, choices, selectedIndex, bindings =
 
   choices.forEach((choice, index) => {
     const pointer = index === selectedIndex ? "❯" : " ";
+    const icon = choice.icon.padEnd(3, " ");
 
-    console.log(`${pointer}  ${choice.icon}  ${choice.name}`);
+    console.log(`${pointer}  ${icon} ${choice.name}`);
   });
 
-  drawKeybindings(bindings);
+  drawKeybindings();
 }
 
 async function openMenu(projectPath) {
@@ -95,11 +104,6 @@ async function openMenu(projectPath) {
       icon: "⌨️",
       value: "terminal",
     },
-    {
-      name: "Back",
-      icon: "←",
-      value: "back",
-    },
   ];
 
   let selectedIndex = 0;
@@ -110,9 +114,9 @@ async function openMenu(projectPath) {
     while (true) {
       renderMenu("DEVTOOL / OPEN", path.basename(projectPath), "OPEN PROJECT", choices, selectedIndex);
 
-      const key = await waitForKey();
+      const { str, key } = await waitForKey();
 
-      if (key === "\u001b[A") {
+      if (key?.name === "up") {
         if (selectedIndex > 0) {
           selectedIndex--;
         }
@@ -120,7 +124,7 @@ async function openMenu(projectPath) {
         continue;
       }
 
-      if (key === "\u001b[B") {
+      if (key?.name === "down") {
         if (selectedIndex < choices.length - 1) {
           selectedIndex++;
         }
@@ -128,76 +132,74 @@ async function openMenu(projectPath) {
         continue;
       }
 
-      if (key === "\r" || key === "\n") {
-        const choice = choices[selectedIndex].value;
-
-        if (choice === "back") {
-          return;
-        }
-
-        disableRawMode();
-
-        if (choice === "code") {
-          execFile("code", [projectPath], (errorObject) => {
-            if (errorObject) {
-              error("Could not open VS Code.");
-            } else {
-              success("Opened project in VS Code.");
-            }
-          });
-
-          await input({
-            message: "Press Enter to continue",
-          });
-        }
-
-        if (choice === "finder") {
-          execFile("open", [projectPath], (errorObject) => {
-            if (errorObject) {
-              error("Could not open Finder.");
-            } else {
-              success("Opened project in Finder.");
-            }
-          });
-
-          await input({
-            message: "Press Enter to continue",
-          });
-        }
-
-        if (choice === "terminal") {
-          const child = spawn(
-            "osascript",
-            [
-              "-e",
-              `tell application "Ghostty"
-                activate
-                set cfg to new surface configuration
-                set initial working directory of cfg to "${projectPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"
-                new window with configuration cfg
-              end tell`,
-            ],
-            {
-              detached: true,
-              stdio: "ignore",
-            },
-          );
-
-          child.unref();
-
-          success("Opened Ghostty.");
-
-          await input({
-            message: "Press Enter to continue",
-          });
-        }
-
-        enableRawMode();
-      }
-
-      if (key === "q" || key === "Q" || key === "\u001b") {
+      if (key?.name === "escape" || str === "q" || str === "Q") {
         return;
       }
+
+      if (key?.name !== "return") {
+        continue;
+      }
+
+      const choice = choices[selectedIndex].value;
+
+      disableRawMode();
+
+      if (choice === "code") {
+        execFile("code", [projectPath], (errorObject) => {
+          if (errorObject) {
+            error("Could not open VS Code.");
+          } else {
+            success("Opened project in VS Code.");
+          }
+        });
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
+
+      if (choice === "finder") {
+        execFile("open", [projectPath], (errorObject) => {
+          if (errorObject) {
+            error("Could not open Finder.");
+          } else {
+            success("Opened project in Finder.");
+          }
+        });
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
+
+      if (choice === "terminal") {
+        const child = spawn(
+          "osascript",
+          [
+            "-e",
+            `tell application "Ghostty"
+              activate
+              set cfg to new surface configuration
+              set initial working directory of cfg to "${projectPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"
+              new window with configuration cfg
+            end tell`,
+          ],
+          {
+            detached: true,
+            stdio: "ignore",
+          },
+        );
+
+        child.unref();
+
+        success("Opened Ghostty.");
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
+
+      enableRawMode();
     }
   } finally {
     disableRawMode();
@@ -223,23 +225,17 @@ async function runMenu(projectPath) {
     });
   }
 
-  choices.push({
-    name: "Back",
-    icon: "←",
-    value: "back",
-  });
-
   let selectedIndex = 0;
 
   enableRawMode();
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / RUN", path.basename(projectPath), "PROJECT", choices);
+      renderMenu("DEVTOOL / RUN", path.basename(projectPath), "PROJECT", choices, selectedIndex);
 
-      const key = await waitForKey();
+      const { str, key } = await waitForKey();
 
-      if (key === "\u001b[A") {
+      if (key?.name === "up") {
         if (selectedIndex > 0) {
           selectedIndex--;
         }
@@ -247,7 +243,7 @@ async function runMenu(projectPath) {
         continue;
       }
 
-      if (key === "\u001b[B") {
+      if (key?.name === "down") {
         if (selectedIndex < choices.length - 1) {
           selectedIndex++;
         }
@@ -255,53 +251,51 @@ async function runMenu(projectPath) {
         continue;
       }
 
-      if (key === "\r" || key === "\n") {
-        const choice = choices[selectedIndex].value;
-
-        if (choice === "back") {
-          return;
-        }
-
-        disableRawMode();
-
-        if (choice === "run") {
-          runProject(projectPath);
-
-          await input({
-            message: "Press Enter to continue",
-          });
-        }
-
-        if (choice === "install") {
-          clearScreen();
-
-          drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
-
-          console.log("  INSTALLING DEPENDENCIES");
-          console.log("");
-
-          const child = spawn("npm", ["install"], {
-            cwd: projectPath,
-            stdio: "inherit",
-          });
-
-          await new Promise((resolve) => {
-            child.on("close", resolve);
-          });
-
-          success("Dependencies installed.");
-
-          await input({
-            message: "Press Enter to continue",
-          });
-        }
-
-        enableRawMode();
-      }
-
-      if (key === "q" || key === "Q" || key === "\u001b") {
+      if (key?.name === "escape" || str === "q" || str === "Q") {
         return;
       }
+
+      if (key?.name !== "return") {
+        continue;
+      }
+
+      const choice = choices[selectedIndex].value;
+
+      disableRawMode();
+
+      if (choice === "run") {
+        runProject(projectPath);
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
+
+      if (choice === "install") {
+        clearScreen();
+
+        drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
+
+        console.log("  INSTALLING DEPENDENCIES");
+        console.log("");
+
+        const child = spawn("npm", ["install"], {
+          cwd: projectPath,
+          stdio: "inherit",
+        });
+
+        await new Promise((resolve) => {
+          child.on("close", resolve);
+        });
+
+        success("Dependencies installed.");
+
+        await input({
+          message: "Press Enter to continue",
+        });
+      }
+
+      enableRawMode();
     }
   } finally {
     disableRawMode();
@@ -454,22 +448,11 @@ async function deleteProject(projectPath) {
 
   console.log("");
 
-  const confirmation = await select({
-    message: "Are you sure?",
-    choices: [
-      {
-        name: "Delete project",
-        value: true,
-      },
-      {
-        name: "Cancel",
-        value: false,
-      },
-    ],
-    loop: false,
+  const confirmation = await input({
+    message: "Type DELETE to confirm:",
   });
 
-  if (!confirmation) {
+  if (confirmation !== "DELETE") {
     enableRawMode();
     return false;
   }
@@ -512,11 +495,6 @@ async function manageMenu(projectPath) {
       icon: "🗑",
       value: "delete",
     },
-    {
-      name: "Back",
-      icon: "←",
-      value: "back",
-    },
   ];
 
   let selectedIndex = 0;
@@ -525,11 +503,11 @@ async function manageMenu(projectPath) {
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / MANAGE", path.basename(projectPath), "MANAGEMENT", choices);
+      renderMenu("DEVTOOL / MANAGE", path.basename(projectPath), "MANAGEMENT", choices, selectedIndex);
 
-      const key = await waitForKey();
+      const { str, key } = await waitForKey();
 
-      if (key === "\u001b[A") {
+      if (key?.name === "up") {
         if (selectedIndex > 0) {
           selectedIndex--;
         }
@@ -537,7 +515,7 @@ async function manageMenu(projectPath) {
         continue;
       }
 
-      if (key === "\u001b[B") {
+      if (key?.name === "down") {
         if (selectedIndex < choices.length - 1) {
           selectedIndex++;
         }
@@ -545,45 +523,40 @@ async function manageMenu(projectPath) {
         continue;
       }
 
-      if (key === "\r" || key === "\n") {
-        const choice = choices[selectedIndex].value;
-
-        if (choice === "back") {
-          return {
-            path: projectPath,
-            deleted: false,
-          };
-        }
-
-        if (choice === "info") {
-          await showProjectInfo(projectPath);
-        }
-
-        if (choice === "rename") {
-          projectPath = await renameProject(projectPath);
-        }
-
-        if (choice === "move") {
-          projectPath = await moveProject(projectPath);
-        }
-
-        if (choice === "delete") {
-          const deleted = await deleteProject(projectPath);
-
-          if (deleted) {
-            return {
-              path: projectPath,
-              deleted: true,
-            };
-          }
-        }
-      }
-
-      if (key === "q" || key === "Q" || key === "\u001b") {
+      if (key?.name === "escape" || str === "q" || str === "Q") {
         return {
           path: projectPath,
           deleted: false,
         };
+      }
+
+      if (key?.name !== "return") {
+        continue;
+      }
+
+      const choice = choices[selectedIndex].value;
+
+      if (choice === "info") {
+        await showProjectInfo(projectPath);
+      }
+
+      if (choice === "rename") {
+        projectPath = await renameProject(projectPath);
+      }
+
+      if (choice === "move") {
+        projectPath = await moveProject(projectPath);
+      }
+
+      if (choice === "delete") {
+        const deleted = await deleteProject(projectPath);
+
+        if (deleted) {
+          return {
+            path: projectPath,
+            deleted: true,
+          };
+        }
       }
     }
   } finally {
@@ -610,11 +583,6 @@ async function projectActions(projectPath) {
       icon: "🔧",
       value: "manage",
     },
-    {
-      name: "Back",
-      icon: "←",
-      value: "back",
-    },
   ];
 
   let selectedIndex = 0;
@@ -623,11 +591,11 @@ async function projectActions(projectPath) {
 
   try {
     while (true) {
-      renderMenu("DEVTOOL / PROJECT", path.basename(projectPath), "ACTIONS", choices);
+      renderMenu("DEVTOOL / PROJECT", path.basename(projectPath), "ACTIONS", choices, selectedIndex);
 
-      const key = await waitForKey();
+      const { str, key } = await waitForKey();
 
-      if (key === "\u001b[A") {
+      if (key?.name === "up") {
         if (selectedIndex > 0) {
           selectedIndex--;
         }
@@ -635,7 +603,7 @@ async function projectActions(projectPath) {
         continue;
       }
 
-      if (key === "\u001b[B") {
+      if (key?.name === "down") {
         if (selectedIndex < choices.length - 1) {
           selectedIndex++;
         }
@@ -643,37 +611,36 @@ async function projectActions(projectPath) {
         continue;
       }
 
-      if (key === "\r" || key === "\n") {
-        const choice = choices[selectedIndex].value;
+      if (key?.name === "escape" || str === "q" || str === "Q") {
+        return;
+      }
 
-        if (choice === "back") {
+      if (key?.name !== "return") {
+        continue;
+      }
+
+      const choice = choices[selectedIndex].value;
+
+      if (choice === "open") {
+        await openMenu(projectPath);
+        enableRawMode();
+      }
+
+      if (choice === "run") {
+        await runMenu(projectPath);
+        enableRawMode();
+      }
+
+      if (choice === "manage") {
+        const result = await manageMenu(projectPath);
+
+        if (result.deleted) {
           return;
         }
 
-        if (choice === "open") {
-          await openMenu(projectPath);
-          enableRawMode();
-        }
+        projectPath = result.path;
 
-        if (choice === "run") {
-          await runMenu(projectPath);
-          enableRawMode();
-        }
-
-        if (choice === "manage") {
-          const result = await manageMenu(projectPath);
-
-          if (result.deleted) {
-            return;
-          }
-
-          projectPath = result.path;
-          enableRawMode();
-        }
-      }
-
-      if (key === "q" || key === "Q" || key === "\u001b") {
-        return;
+        enableRawMode();
       }
     }
   } finally {

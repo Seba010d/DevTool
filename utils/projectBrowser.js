@@ -60,6 +60,7 @@ function getEntries(currentPath) {
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
     .map((entry) => {
       const entryPath = path.join(currentPath, entry.name);
+
       const project = isProject(entryPath);
 
       return {
@@ -87,6 +88,8 @@ function disableRawMode() {
   }
 
   process.stdin.pause();
+
+  process.stdout.write("\x1b[?25h");
 }
 
 function enableRawMode() {
@@ -96,13 +99,71 @@ function enableRawMode() {
 
   process.stdin.resume();
   process.stdin.setEncoding("utf8");
+
+  process.stdout.write("\x1b[?25l");
 }
 
 function waitForKey() {
   return new Promise((resolve) => {
-    const onData = (key) => {
-      process.stdin.removeListener("data", onData);
-      resolve(key);
+    let buffer = "";
+
+    const onData = (data) => {
+      buffer += data;
+
+      if (buffer === "\u001b") {
+        setTimeout(() => {
+          if (buffer === "\u001b") {
+            process.stdin.removeListener("data", onData);
+
+            resolve("escape");
+          }
+        }, 50);
+
+        return;
+      }
+
+      if (buffer.startsWith("\u001b[")) {
+        if (buffer.endsWith("A")) {
+          process.stdin.removeListener("data", onData);
+
+          resolve("up");
+          return;
+        }
+
+        if (buffer.endsWith("B")) {
+          process.stdin.removeListener("data", onData);
+
+          resolve("down");
+          return;
+        }
+      }
+
+      if (buffer === "\r" || buffer === "\n") {
+        process.stdin.removeListener("data", onData);
+
+        resolve("enter");
+        return;
+      }
+
+      if (buffer === "/") {
+        process.stdin.removeListener("data", onData);
+
+        resolve("search");
+        return;
+      }
+
+      if (buffer === "q" || buffer === "Q") {
+        process.stdin.removeListener("data", onData);
+
+        resolve("back");
+        return;
+      }
+
+      if (buffer.length === 1) {
+        process.stdin.removeListener("data", onData);
+
+        resolve(buffer);
+      }
     };
 
     process.stdin.on("data", onData);
@@ -111,6 +172,7 @@ function waitForKey() {
 
 function renderEntry(entry, selected) {
   const pointer = selected ? "❯" : " ";
+
   const left = `${pointer}  ${entry.icon}  ${entry.name}`;
 
   if (!entry.projectType) {
@@ -118,6 +180,7 @@ function renderEntry(entry, selected) {
   }
 
   const nameColumnWidth = 34;
+
   const spacing = Math.max(2, nameColumnWidth - left.length);
 
   return `${left}${" ".repeat(spacing)}${entry.projectType}`;
@@ -133,6 +196,7 @@ function renderProjectList(currentPath, entries, selectedIndex) {
 
   if (!entries.length) {
     console.log("  No projects or folders found.");
+
     console.log("");
   }
 
@@ -141,8 +205,11 @@ function renderProjectList(currentPath, entries, selectedIndex) {
   });
 
   console.log("");
+
   console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+
   console.log("");
+
   console.log("  ↑↓ Navigate    Enter Select    / Search    Q Back");
 }
 
@@ -206,6 +273,7 @@ async function searchProjects(startPath) {
     drawHeader("DEVTOOL", `Search · ${entries.length} result${entries.length === 1 ? "" : "s"}`);
 
     console.log(`  RESULTS · "${query}"`);
+
     console.log("");
 
     entries.forEach((entry, index) => {
@@ -213,13 +281,16 @@ async function searchProjects(startPath) {
     });
 
     console.log("");
+
     console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+
     console.log("");
+
     console.log("  ↑↓ Navigate    Enter Select    Q Back");
 
     const key = await waitForKey();
 
-    if (key === "\u001b[A") {
+    if (key === "up") {
       if (selectedIndex > 0) {
         selectedIndex--;
       }
@@ -227,7 +298,7 @@ async function searchProjects(startPath) {
       continue;
     }
 
-    if (key === "\u001b[B") {
+    if (key === "down") {
       if (selectedIndex < entries.length - 1) {
         selectedIndex++;
       }
@@ -235,7 +306,7 @@ async function searchProjects(startPath) {
       continue;
     }
 
-    if (key === "\r" || key === "\n") {
+    if (key === "enter") {
       disableRawMode();
 
       await projectActions(entries[selectedIndex].path);
@@ -245,7 +316,7 @@ async function searchProjects(startPath) {
       return;
     }
 
-    if (key === "q" || key === "Q" || key === "\u001b") {
+    if (key === "back" || key === "escape") {
       return;
     }
   }
@@ -267,7 +338,7 @@ async function browseProjects(startPath) {
 
         const key = await waitForKey();
 
-        if (key === "\u001b[A") {
+        if (key === "up") {
           if (selectedIndex > 0) {
             selectedIndex--;
           }
@@ -275,7 +346,7 @@ async function browseProjects(startPath) {
           continue;
         }
 
-        if (key === "\u001b[B") {
+        if (key === "down") {
           if (selectedIndex < entries.length - 1) {
             selectedIndex++;
           }
@@ -283,7 +354,7 @@ async function browseProjects(startPath) {
           continue;
         }
 
-        if (key === "\r" || key === "\n") {
+        if (key === "enter") {
           if (!entries.length) {
             continue;
           }
@@ -302,11 +373,12 @@ async function browseProjects(startPath) {
 
           if (selected.type === "folder") {
             currentPath = selected.path;
+
             break;
           }
         }
 
-        if (key === "/") {
+        if (key === "search") {
           await searchProjects(startPath);
 
           enableRawMode();
@@ -314,21 +386,23 @@ async function browseProjects(startPath) {
           break;
         }
 
-        if (key === "q" || key === "Q") {
+        if (key === "back") {
           if (currentPath === startPath) {
             return;
           }
 
           currentPath = path.dirname(currentPath);
+
           break;
         }
 
-        if (key === "\u001b") {
+        if (key === "escape") {
           if (currentPath === startPath) {
             return;
           }
 
           currentPath = path.dirname(currentPath);
+
           break;
         }
       }
