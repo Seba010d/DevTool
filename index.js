@@ -11,8 +11,6 @@ const { drawHeader, drawFooter, success, error } = require("./utils/ui");
 const { selectMenu } = require("./utils/menu");
 const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
 
-const { isBackKey: menuIsBackKey } = require("./utils/menu");
-
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
 const createExpressProject = require("./templates/express");
@@ -54,11 +52,11 @@ async function getProjectName() {
       console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
 
       console.log("");
-      console.log("  Type name    Enter Continue    Q / Esc Back");
+      console.log("  Type name    Enter Continue    Esc Back");
 
       const key = await waitForKey();
 
-      if (menuIsBackKey(key)) {
+      if (key.name === "escape") {
         return null;
       }
 
