@@ -56,7 +56,7 @@ async function chooseFolder(startPath) {
 
       drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
-      console.log("  SELECT FOLDER");
+      console.log("  📁 SELECT FOLDER");
       console.log("");
 
       if (!choices.length) {
@@ -83,7 +83,7 @@ async function chooseFolder(startPath) {
 
           drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
-          console.log("  SELECT FOLDER");
+          console.log("  📁 SELECT FOLDER");
 
           console.log("");
 
@@ -97,7 +97,7 @@ async function chooseFolder(startPath) {
 
           drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
-          console.log("  SELECT FOLDER");
+          console.log("  📁 SELECT FOLDER");
 
           console.log("");
 

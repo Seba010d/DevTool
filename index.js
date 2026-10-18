@@ -46,7 +46,7 @@ async function getProjectName() {
       console.log("  PROJECT SETUP");
       console.log("");
 
-      console.log(`  Project name: ${value}`);
+      console.log(`  📦 Project name: ${value}`);
       console.log("");
 
       console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
@@ -235,9 +235,9 @@ async function createProject() {
   console.log("  RESULT");
   console.log("");
 
-  success(`Created ${projectName}`);
+  success(`📦 Created ${projectName}`);
 
-  console.log(`  ${projectPath}`);
+  console.log(`  📁 Location: ${projectPath}`);
 
   enableKeyboard();
 
