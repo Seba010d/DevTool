@@ -1,157 +1,118 @@
 # DevTool
 
-DevTool is a command-line tool for managing and opening local development projects from one simple interface.
+**A terminal-based project launcher and project creator for macOS.**
 
-Instead of manually navigating through folders, DevTool lets you browse your projects and quickly open them in your preferred development tools.
+DevTool gives you one interactive place to browse your local development folders, open projects in your tools, and create new projects from ready-to-use templates.
 
 ## Features
 
-- 📁 Browse project folders
-- 🚀 Open projects quickly
-- 💻 Open projects in VS Code
-- 🖥️ Open a terminal directly inside a project
-- 📂 Open projects in Finder
-- ⚙️ Configure your projects location
-- 📋 View available projects without showing full paths
-- 🧭 Navigate through folders using an interactive menu
-- 🛠️ Built for developers working with multiple local projects
+- **Browse projects** — navigate folders and select projects from an interactive terminal menu.
+- **Search projects** — press `/` in the project browser to search project names.
+- **Open projects** — open a selected project in Visual Studio Code, Terminal, or Finder.
+- **Create projects** — generate a project from one of the included templates.
+- **Configure locations** — choose your main projects directory and the location used when creating projects.
+- **Manage settings** — clear recent-project data or reset DevTool's settings.
+- **Terminal UI** — use keyboard navigation without having to remember long folder paths.
 
 ## Requirements
 
-- Node.js
-- npm
 - macOS
+- [Node.js](https://nodejs.org/) and npm
+- [Visual Studio Code](https://code.visualstudio.com/) for the VS Code open action
 
 ## Installation
 
-Clone the repository:
+Clone the repository and install its dependencies:
 
 ```bash
 git clone https://github.com/Seba010d/DevTool.git
-```
-
-Enter the project:
-
-```bash
 cd DevTool
-```
-
-Install the dependencies:
-
-```bash
 npm install
 ```
 
 ## Usage
 
-Start DevTool with:
+Start the interactive launcher:
 
 ```bash
 npm start
 ```
 
-DevTool will open an interactive menu where you can manage and open your projects.
+The main menu includes **Projects**, **Create project**, **Settings**, and **Quit**.
 
-## Project Location
+You can also use the command-line interface directly:
 
-DevTool uses a configured projects directory as the main location for your development projects.
-
-For example:
-
-```text
-~/Github/
-├── Portfolio/
-├── TChat/
-├── DevTool/
-├── FGU-Opgaver/
-└── FrontendMentor/
+```bash
+node index.js --help
+node index.js create
 ```
 
-You can configure the projects location from DevTool's settings.
+- `node index.js` or `npm start` opens the main menu.
+- `node index.js create` starts the project creation flow.
+- `node index.js --help` displays the available commands.
 
-## Opening a Project
+## Create a project
 
-When selecting a project, DevTool provides options for working with it.
+Choose **Create project** from the main menu, or run `node index.js create`. DevTool asks for a project name and location, then lets you select a template.
 
-### VS Code
+Available templates:
 
-Opens the selected project directly in Visual Studio Code.
+| Template | What it creates |
+| --- | --- |
+| Empty project | A clean starting folder |
+| Node.js project | A basic Node.js project |
+| Node.js + Express | A Node.js project using Express |
+| Web | A basic web project |
+| Web + SCSS | A web project with SCSS setup |
+| JavaScript App | A JavaScript application starter |
+| Boilerplate | A general-purpose starter structure |
 
-### Terminal
+DevTool creates a `.devtool.json` file in generated projects to store project metadata.
 
-Opens a new terminal window in the selected project directory.
+## Project locations and settings
 
-### Finder
+By default, DevTool looks for a `Github` folder in your home directory. If it doesn't exist, it uses your home directory.
 
-Opens the selected project folder in Finder.
+Open **Settings** to:
 
-## Commands
+- Change the main projects directory.
+- Choose the last-used project creation location.
+- Clear recent-project data.
+- Reset DevTool's settings.
 
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `npm start`   | Start DevTool                |
-| `npm install` | Install project dependencies |
+Settings are saved to:
 
-## Technologies
+```text
+~/.config/devtool/config.json
+```
 
-DevTool is built using:
-
-- **Node.js**
-- **JavaScript**
-- **Inquirer**
-- **File System API**
-- **Path API**
-- **macOS Terminal / Finder / VS Code integration**
-
-## Project Structure
+## Project structure
 
 ```text
 DevTool/
-├── index.js
+├── config/       # Default configuration
+├── templates/    # Project template generators
+├── utils/        # Browsing, menus, settings, and UI helpers
+├── index.js      # CLI entry point
 ├── package.json
-├── package-lock.json
 └── README.md
 ```
 
-Additional files may be added as DevTool grows.
+## Technologies
 
-## Goals
+- JavaScript
+- Node.js (CommonJS)
+- [@inquirer/prompts](https://www.npmjs.com/package/@inquirer/prompts)
+- Node.js file-system and path APIs
 
-The goal of DevTool is to make managing development projects faster and easier.
+## Project status
 
-Instead of repeatedly using commands such as:
-
-```bash
-cd ~/Github/SomeProject
-code .
-```
-
-DevTool provides an interactive way to find and open the project.
-
-## Future Improvements
-
-Possible future features include:
-
-- 🔍 Project search
-- ⭐ Favorite projects
-- 🕘 Recently opened projects
-- 🧰 Project templates
-- 📦 Create new projects from templates
-- 🔧 More configuration options
-- 🐙 Optional Git/GitHub tools
-- 🎨 More customization options
-
-## Status
-
-DevTool is currently under active development.
-
-The project is primarily being built as a learning project while exploring Node.js, CLI applications, file-system operations, and developer tooling.
+DevTool is an evolving personal developer-tooling project. Features and workflows may change as development continues.
 
 ## Author
 
-**Sebastian Christiansen**
-
-GitHub: [Seba010d](https://github.com/Seba010d)
+**Sebastian A. Christiansen**  
+[GitHub: Seba010d](https://github.com/Seba010d)
 
 ---
 
