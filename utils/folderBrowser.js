@@ -3,26 +3,19 @@ const os = require("os");
 const path = require("path");
 const { input } = require("@inquirer/prompts");
 
-const { drawHeader } = require("./ui");
-const { colors } = require("./colors");
+const { drawHeader, drawSection, info } = require("./ui");
 const { enableKeyboard, disableKeyboard, waitForKey } = require("./keyboard");
-const { drawKeybindings, renderChoice, moveSelection, isBackKey } = require("./menu");
+const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
 const isProject = require("./projectDetector");
 
 function renderFolderList(currentPath, entries, choices, selectedIndex) {
   const location = path.relative(process.env.HOME || "", currentPath) || currentPath;
   drawHeader("DEVTOOL / LOCATION", location);
-  console.log(`${colors.brightCyan}  CHOOSE A FOLDER${colors.reset}`);
-  console.log(`${colors.gray}  📁 Folder    📦 Project${colors.reset}`);
-  console.log("");
-
-  if (!entries.length) {
-    console.log(`${colors.gray}  This folder is empty.${colors.reset}`);
-    console.log("");
-  }
-
-  choices.forEach((choice, index) => {
-    console.log(`  ${renderChoice(choice, index === selectedIndex)}`);
+  renderChoiceList({
+    section: "CHOOSE A FOLDER",
+    choices,
+    selectedIndex,
+    emptyMessage: "This folder is empty.",
   });
 
   drawKeybindings("↑↓ Move    Enter Open or choose    Q Cancel");
@@ -52,8 +45,9 @@ async function chooseFolder(startPath) {
         );
 
       const choices = entries.map((entry) => ({
-        name: `${entry.name}  ${isProject(path.join(currentPath, entry.name)) ? "(project)" : "(folder)"}`,
+        name: entry.name,
         icon: isProject(path.join(currentPath, entry.name)) ? "📦" : "📁",
+        meta: isProject(path.join(currentPath, entry.name)) ? "Project" : "Folder",
         value: {
           type: "folder",
           path: path.join(currentPath, entry.name),
@@ -118,7 +112,13 @@ async function chooseFolder(startPath) {
 
           if (selected.value.type === "create") {
             disableKeyboard();
-            const folderName = (await input({ message: "New folder name:" })).trim();
+            drawHeader("DEVTOOL / NEW FOLDER", "Choose a name for the folder");
+            drawSection("LOCATION");
+            info(currentPath);
+            console.log("");
+            drawSection("FOLDER NAME");
+            console.log("");
+            const folderName = (await input({ message: "Name:" })).trim();
             if (folderName && folderName !== "." && folderName !== ".." && !folderName.includes(path.sep)) {
               const newPath = path.join(currentPath, folderName);
               if (!fs.existsSync(newPath)) fs.mkdirSync(newPath);

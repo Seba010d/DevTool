@@ -6,9 +6,8 @@ const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
 const { drawHeader, info, error } = require("./ui");
-const { colors } = require("./colors");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
-const { drawKeybindings, renderChoice, getDisplayWidth, moveSelection, isBackKey } = require("./menu");
+const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -81,40 +80,16 @@ function getEntries(currentPath) {
     );
 }
 
-function renderEntry(entry, selected) {
-  const choice = {
-    name: entry.name,
-    icon: entry.icon,
-  };
-
-  const line = renderChoice(choice, selected);
-
-  if (!entry.projectType) {
-    return line;
-  }
-
-  const typeColumn = 38;
-  const lineWidth = getDisplayWidth(line);
-  const spacing = Math.max(4, typeColumn - lineWidth);
-
-  return line + " ".repeat(spacing) + `${colors.gray}${entry.projectType}${colors.reset}`;
-}
-
 function renderProjectList(currentPath, entries, selectedIndex) {
   clearScreen();
 
   drawHeader("DEVTOOL", `Projects · ${path.relative(process.env.HOME || "", currentPath) || currentPath}`);
 
-  console.log(`  PROJECTS  ·  ${entries.length} item${entries.length === 1 ? "" : "s"}`);
-  console.log("");
-
-  if (!entries.length) {
-    console.log("  No projects or folders found.");
-    console.log("");
-  }
-
-  entries.forEach((entry, index) => {
-    console.log(renderEntry(entry, index === selectedIndex));
+  renderChoiceList({
+    section: `PROJECTS · ${entries.length} item${entries.length === 1 ? "" : "s"}`,
+    choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || (entry.type === "folder" ? "Folder" : "Project"), value: entry.path })),
+    selectedIndex,
+    emptyMessage: "No projects or folders found.",
   });
 
   drawKeybindings("↑↓ Move    Enter Open    / Search    Q Back");
@@ -179,11 +154,10 @@ async function searchProjects(startPath) {
 
     drawHeader("DEVTOOL", `Search · ${entries.length} result${entries.length === 1 ? "" : "s"}`);
 
-    console.log(`  RESULTS · "${query}"`);
-    console.log("");
-
-    entries.forEach((entry, index) => {
-      console.log(renderEntry(entry, index === selectedIndex));
+    renderChoiceList({
+      section: `RESULTS · "${query}"`,
+      choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || "Project", value: entry.path })),
+      selectedIndex,
     });
 
     drawKeybindings("↑↓ Move    Enter Open    Q Back");
