@@ -7,7 +7,7 @@ const chooseFolder = require("./utils/folderBrowser");
 const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
-const { drawHeader, drawFooter, success, error } = require("./utils/ui");
+const { drawHeader, drawFooter, drawSection, success, error } = require("./utils/ui");
 const { selectMenu } = require("./utils/menu");
 const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
 const { colors } = require("./utils/colors");
@@ -61,7 +61,7 @@ async function getProjectName() {
     while (true) {
       drawHeader("DEVTOOL", "Create a new project");
 
-      console.log(`${colors.brightCyan}  PROJECT NAME${colors.reset}`);
+      drawSection("PROJECT NAME");
       console.log("");
 
       console.log(`  ${colors.gray}❯${colors.reset} ${value}${colors.brightCyan}▏${colors.reset}`);

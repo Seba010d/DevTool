@@ -4,7 +4,7 @@ const { loadConfig, saveConfig, resetConfig } = require("./config");
 
 const chooseFolder = require("./folderBrowser");
 
-const { drawHeader, success, info } = require("./ui");
+const { drawHeader, drawSection, success, info } = require("./ui");
 
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 
@@ -87,7 +87,7 @@ async function openSettings() {
 
         drawHeader("DEVTOOL / SETTINGS", "Projects location");
 
-        console.log("  CURRENT LOCATION");
+        drawSection("CURRENT LOCATION");
 
         console.log("");
 
@@ -123,7 +123,7 @@ async function openSettings() {
 
         drawHeader("DEVTOOL / SETTINGS", "Last project location");
 
-        console.log("  CURRENT LOCATION");
+        drawSection("CURRENT LOCATION");
 
         console.log("");
 

@@ -41,7 +41,8 @@ function renderChoice(choice, selected) {
   const pointer = selected ? `${colors.brightCyan}▶${colors.reset}` : " ";
   const icon = choice.icon || "";
   const iconColumn = padDisplayWidth(icon, 2);
-  const styledIcon = selected ? `${colors.brightCyan}${iconColumn}${colors.reset}` : iconColumn;
+  const iconColor = selected ? colors.brightCyan : choice.iconColor || "";
+  const styledIcon = iconColor ? `${iconColor}${iconColumn}${colors.reset}` : iconColumn;
   const name = selected ? `${colors.brightYellow}\x1b[1m${choice.name}\x1b[0m` : choice.name;
   const styledMeta = choice.meta
     ? `${choice.meta === "Folder" ? colors.brightBlue : choice.meta === "Project" ? colors.brightGreen : colors.brightCyan}${choice.meta}${colors.reset}`

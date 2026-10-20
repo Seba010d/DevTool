@@ -5,7 +5,7 @@ const { input } = require("@inquirer/prompts");
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
-const { drawHeader, info, error } = require("./ui");
+const { drawHeader, drawSection, info, error } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
 
@@ -102,7 +102,7 @@ async function searchProjects(startPath) {
 
   drawHeader("DEVTOOL", "Search projects");
 
-  console.log("  SEARCH");
+  drawSection("SEARCH");
   console.log("");
 
   const query = (

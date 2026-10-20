@@ -4,6 +4,7 @@ const path = require("path");
 const { input } = require("@inquirer/prompts");
 
 const { drawHeader, drawSection, info } = require("./ui");
+const { colors } = require("./colors");
 const { enableKeyboard, disableKeyboard, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
 const isProject = require("./projectDetector");
@@ -56,7 +57,8 @@ async function chooseFolder(startPath) {
 
       choices.push({
         name: "Select this folder",
-        icon: "✓",
+        icon: "✔",
+        iconColor: colors.brightGreen,
         value: {
           type: "select",
           path: currentPath,
@@ -66,13 +68,15 @@ async function chooseFolder(startPath) {
       choices.push({
         name: "Create a new folder here",
         icon: "＋",
+        iconColor: colors.brightYellow,
         value: { type: "create", path: currentPath },
       });
 
       if (currentPath !== path.parse(currentPath).root) {
         choices.push({
           name: "Parent folder",
-          icon: "↑",
+          icon: "↰",
+          iconColor: colors.brightPurple,
           value: {
             type: "parent",
             path: path.dirname(currentPath),

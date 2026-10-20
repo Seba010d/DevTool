@@ -6,7 +6,7 @@ const { execFile, spawn } = require("child_process");
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
 const { addRecentProject, loadConfig, updateRecentProject } = require("./config");
-const { drawHeader, success, error } = require("./ui");
+const { drawHeader, drawSection, success, error } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderMenu, moveSelection, isBackKey } = require("./menu");
 
@@ -213,7 +213,7 @@ async function runMenu(projectPath) {
 
         drawHeader("DEVTOOL / INSTALL", path.basename(projectPath));
 
-        console.log("  INSTALLING DEPENDENCIES");
+        drawSection("INSTALLING DEPENDENCIES");
         console.log("");
 
         const child = spawn("npm", ["install"], {
@@ -255,7 +255,7 @@ async function showProjectInfo(projectPath) {
 
   drawHeader("DEVTOOL / INFO", path.basename(projectPath));
 
-  console.log("  PROJECT INFORMATION");
+  drawSection("PROJECT INFORMATION");
   console.log("");
 
   console.log(`  Name       ${config?.name || path.basename(projectPath)}`);
