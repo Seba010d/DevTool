@@ -85,15 +85,15 @@ function renderChoice(choice, selected) {
   return `${pointer}  ${styledIcon}  ${name}${meta}`;
 }
 
-function renderChoiceList({ section, choices, selectedIndex = 0, emptyMessage = "No items to show." }) {
+function renderChoiceList({ section, choices, selectedIndex = 0, emptyMessage = "No items to show.", reservedRows = 0, fillHeight = true }) {
   const width = getWidth();
   const title = section || "OPTIONS";
-  const count = choices.length ? `${selectedIndex + 1} / ${choices.length}` : "0 items";
+  const count = choices.length ? (selectedIndex >= 0 ? `${selectedIndex + 1} / ${choices.length}` : `${choices.length} items`) : "0 items";
   const visibleTitle = truncateText(title, Math.max(1, width - getDisplayWidth(count) - 10));
   const topFill = "─".repeat(Math.max(1, width - getDisplayWidth(visibleTitle) - getDisplayWidth(count) - 7));
   console.log(`${colors.gray}╭─ ${colors.brightCyan}\x1b[1m${visibleTitle}${colors.reset}${colors.gray} ${topFill} ${colors.brightYellow}${count}${colors.gray}─╮${colors.reset}`);
 
-  const extraRows = Math.max(0, (process.stdout.rows || 24) - choices.length - 13);
+  const extraRows = fillHeight ? Math.max(0, (process.stdout.rows || 24) - choices.length - 13 - reservedRows) : 0;
   const topPadding = Math.floor(extraRows / 2);
   const bottomPadding = extraRows - topPadding;
   const blankRow = `${colors.gray}│${colors.reset}${" ".repeat(width - 2)}${colors.gray}│${colors.reset}`;

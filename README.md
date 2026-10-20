@@ -14,7 +14,7 @@ DevTool gives you one interactive place to browse your local development folders
 - **Manage projects** — view project information, rename, move, run, install dependencies, or delete a project.
 - **Configure locations** — choose your main projects directory and the location used when creating projects.
 - **Manage settings** — clear recent-project data or reset DevTool's settings.
-- **Responsive terminal UI** — menus adapt to terminal width and height, with colored templates, key hints, and consistent success and error messages.
+- **Responsive terminal UI** — menus adapt to terminal width and height, with project breadcrumbs, separate folder and action groups, item counts, selected-project details, colored templates, and consistent success and error messages.
 
 ## Requirements
 

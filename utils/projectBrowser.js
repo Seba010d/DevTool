@@ -5,7 +5,8 @@ const { input } = require("@inquirer/prompts");
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
-const { drawHeader, drawSection, info, error } = require("./ui");
+const { drawHeader, drawSection, drawInfoPanel, getWidth, truncateText, info, error } = require("./ui");
+const { colors } = require("./colors");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
 
@@ -80,16 +81,68 @@ function getEntries(currentPath) {
     );
 }
 
-function renderProjectList(currentPath, entries, selectedIndex) {
+function getProjectDetailFields(entry) {
+  if (!entry) return [];
+
+  if (entry.type === "project") {
+    const config = loadProjectConfig(entry.path);
+    return [
+      ["Name", entry.name],
+      ["Type", entry.projectType || "Project"],
+      ["Template", config?.template || "Imported or unspecified"],
+      ["Run command", config?.run || "Not set"],
+      ["Location", entry.path],
+    ];
+  }
+
+  let children = [];
+  try {
+    children = getEntries(entry.path);
+  } catch {}
+  const projects = children.filter((child) => child.type === "project").length;
+  return [
+    ["Kind", "Folder"],
+    ["Projects", String(projects)],
+    ["Subfolders", String(children.length - projects)],
+    ["Location", entry.path],
+  ];
+}
+
+function renderProjectDetails(entry, currentPath) {
+  console.log("");
+  if (!entry) {
+    drawInfoPanel("FOLDER DETAILS", [
+      ["Status", "No projects or folders here yet"],
+      ["Next", "Create a project from the main menu"],
+      ["Location", currentPath],
+    ]);
+    return;
+  }
+
+  drawInfoPanel(entry.type === "project" ? "SELECTED PROJECT" : "SELECTED FOLDER", getProjectDetailFields(entry));
+}
+
+function renderBreadcrumb(startPath, currentPath) {
+  const relativePath = path.relative(startPath, currentPath);
+  const breadcrumb = ["Projects", ...(relativePath ? relativePath.split(path.sep) : [])].join("  ›  ");
+  console.log(`  ${colors.gray}LOCATION${colors.reset} ${colors.brightCyan}${truncateText(breadcrumb, getWidth() - 13)}${colors.reset}`);
+}
+
+function renderProjectList(startPath, currentPath, entries, selectedIndex) {
   clearScreen();
 
   drawHeader("DEVTOOL", `Projects · ${path.relative(process.env.HOME || "", currentPath) || currentPath}`);
+  renderBreadcrumb(startPath, currentPath);
+  const projectCount = entries.filter((entry) => entry.type === "project").length;
+  const folderCount = entries.length - projectCount;
   renderChoiceList({
-    section: `PROJECTS · ${entries.length} item${entries.length === 1 ? "" : "s"}`,
+    section: `PROJECTS · ${projectCount} PROJECTS · ${folderCount} FOLDERS`,
     choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || (entry.type === "folder" ? "Folder" : "Project"), value: entry.path })),
     selectedIndex,
-    emptyMessage: "No projects or folders found.",
+    emptyMessage: "Nothing here yet. Create a project from the main menu.",
+    reservedRows: 8,
   });
+  renderProjectDetails(entries[selectedIndex], currentPath);
 
   drawKeybindings("↑↓ Move    Enter Open    / Search    Q Back");
 }
@@ -156,7 +209,9 @@ async function searchProjects(startPath) {
       section: `RESULTS · "${query}"`,
       choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || "Project", value: entry.path })),
       selectedIndex,
+      reservedRows: 8,
     });
+    renderProjectDetails(entries[selectedIndex], startPath);
 
     drawKeybindings("↑↓ Move    Enter Open    Q Back");
 
@@ -212,7 +267,7 @@ async function browseProjects(startPath) {
       let selectedIndex = 0;
 
       while (true) {
-        renderProjectList(currentPath, entries, selectedIndex);
+        renderProjectList(startPath, currentPath, entries, selectedIndex);
 
         const key = await waitForKey();
 

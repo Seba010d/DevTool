@@ -88,6 +88,40 @@ function drawSection(title) {
   console.log(`${colors.gray}╭─ ${colors.brightCyan}${visibleTitle}${colors.gray} ${"─".repeat(lineLength)}╮${colors.reset}`);
 }
 
+function drawInfoPanel(title, fields = []) {
+  const width = getWidth();
+  const innerWidth = width - 4;
+  const visibleTitle = truncateText(title, width - 8);
+  const rule = "─".repeat(Math.max(1, width - getDisplayWidth(visibleTitle) - 5));
+  console.log(`${colors.gray}╭─ ${colors.brightCyan}\x1b[1m${visibleTitle}${colors.reset}${colors.gray} ${rule}╮${colors.reset}`);
+
+  const labelWidth = Math.min(18, Math.max(6, Math.floor(innerWidth * 0.4), ...fields.map(([label]) => getDisplayWidth(label))));
+  for (const [label, value] of fields) {
+    const prefix = `${label.padEnd(labelWidth)}  `;
+    const text = `${prefix}${String(value ?? "—")}`;
+    const lines = [];
+    let line = "";
+    for (const char of text) {
+      if (getDisplayWidth(line + char) > innerWidth) {
+        lines.push(line);
+        line = char.trim() ? char : "";
+      } else {
+        line += char;
+      }
+    }
+    if (line) lines.push(line);
+
+    lines.forEach((fieldLine, index) => {
+      const formatted = index === 0
+        ? `${colors.brightCyan}${fieldLine.slice(0, labelWidth)}${colors.reset}  ${colors.white}${fieldLine.slice(labelWidth + 2)}${colors.reset}`
+        : `  ${colors.white}${fieldLine}${colors.reset}`;
+      console.log(`${colors.gray}│${colors.reset} ${padText(formatted, innerWidth)} ${colors.gray}│${colors.reset}`);
+    });
+  }
+
+  console.log(`${colors.gray}╰${"─".repeat(width - 2)}╯${colors.reset}`);
+}
+
 function drawFooter(text = "DevTool") {
   console.log("");
   console.log(`${colors.gray}  ${text}${colors.reset}`);
@@ -139,4 +173,4 @@ function info(message) {
   console.log(`${colors.gray}  ${message}${colors.reset}`);
 }
 
-module.exports = { getWidth, getDisplayWidth, padText, truncateText, drawHeader, drawProjectRow, drawDivider, drawSection, drawFooter, success, error, info };
+module.exports = { getWidth, getDisplayWidth, padText, truncateText, drawHeader, drawProjectRow, drawDivider, drawSection, drawInfoPanel, drawFooter, success, error, info };

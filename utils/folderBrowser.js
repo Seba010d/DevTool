@@ -12,11 +12,23 @@ const isProject = require("./projectDetector");
 function renderFolderList(currentPath, entries, choices, selectedIndex) {
   const location = path.relative(process.env.HOME || "", currentPath) || currentPath;
   drawHeader("DEVTOOL / LOCATION", location);
+  const folderChoices = choices.slice(0, entries.length);
+  const actionChoices = choices.slice(entries.length);
+
   renderChoiceList({
-    section: "CHOOSE A FOLDER",
-    choices,
-    selectedIndex,
-    emptyMessage: "This folder is empty.",
+    section: `FOLDERS · ${entries.length}`,
+    choices: folderChoices,
+    selectedIndex: selectedIndex < entries.length ? selectedIndex : -1,
+    emptyMessage: "No folders here. Use the actions below to continue.",
+    fillHeight: false,
+  });
+
+  console.log("");
+  renderChoiceList({
+    section: "ACTIONS",
+    choices: actionChoices,
+    selectedIndex: selectedIndex >= entries.length ? selectedIndex - entries.length : -1,
+    fillHeight: false,
   });
 
   drawKeybindings("↑↓ Move    Enter Open or choose    Q Cancel");
