@@ -2,10 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 function createJavaScriptProject(projectPath) {
-  const assetsPath = path.join(projectPath, "assets");
-  const cssPath = path.join(assetsPath, "css");
-  const jsPath = path.join(assetsPath, "js");
-  const imagesPath = path.join(assetsPath, "images");
+  const assetsPath = path.join(projectPath, "Assets");
+  const cssPath = path.join(assetsPath, "Css");
+  const jsPath = path.join(assetsPath, "JS");
+  const imagesPath = path.join(assetsPath, "Images");
 
   fs.mkdirSync(cssPath, { recursive: true });
   fs.mkdirSync(jsPath, { recursive: true });
@@ -22,10 +22,10 @@ function createJavaScriptProject(projectPath) {
 
     <title>${path.basename(projectPath)}</title>
 
-    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="Assets/Css/style.css" />
 
     <script
-      src="assets/js/index.js"
+      src="Assets/JS/index.js"
       type="module"
     ></script>
   </head>

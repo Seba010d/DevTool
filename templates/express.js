@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 function createExpressProject(projectPath) {
+  fs.mkdirSync(path.join(projectPath, "Assets"), { recursive: true });
   const projectName = path
     .basename(projectPath)
     .toLowerCase()

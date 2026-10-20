@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 function createNodeProject(projectPath) {
+  fs.mkdirSync(path.join(projectPath, "Assets"), { recursive: true });
   const packageJson = {
     name: path.basename(projectPath).toLowerCase(),
     version: "1.0.0",

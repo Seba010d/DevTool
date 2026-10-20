@@ -197,6 +197,22 @@ table {
   fs.writeFileSync(path.join(modulesPath, "localStorage.js"), localStorageContent);
   fs.writeFileSync(path.join(scssPath, "style.scss"), scssContent);
   fs.writeFileSync(path.join(scssPath, "_reset.scss"), resetContent);
+  fs.writeFileSync(
+    path.join(projectPath, "package.json"),
+    JSON.stringify(
+      {
+        name: path
+          .basename(projectPath)
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, "-"),
+        version: "1.0.0",
+        scripts: { build: "sass scss/style.scss Assets/Css/Style.css" },
+        devDependencies: { sass: "^1.0.0" },
+      },
+      null,
+      2,
+    ) + "\n",
+  );
 
   console.log("");
   console.log("Boilerplate project created.");
