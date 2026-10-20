@@ -32,23 +32,37 @@ function padDisplayWidth(value, width) {
 }
 
 function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
+  const keyNames = /^(↑↓|Enter|Return|Q|Esc|Escape|\/|Ctrl\+C|Any key|Press any key)(?=\s|$)/i;
+  const visibleBindings = bindings
+    .split(/\s{2,}/)
+    .map((binding) => {
+      const match = binding.match(keyNames);
+      if (!match) return `${colors.gray}${binding}${colors.reset}`;
+      const key = match[0];
+      const label = binding.slice(key.length).trim();
+      return `${colors.brightYellow}\x1b[1m${key}\x1b[0m${label ? ` ${colors.gray}${label}${colors.reset}` : ""}`;
+    })
+    .join(`   ${colors.gray}·${colors.reset}   `);
+
   console.log("");
   console.log(`  ${colors.gray}${"─".repeat(Math.min(Math.max(process.stdout.columns || 80, 50), 100))}${colors.reset}`);
-  console.log(`  ${colors.gray}${bindings}${colors.reset}`);
+  console.log(`  ${visibleBindings}`);
 }
 
 function renderChoice(choice, selected) {
   const pointer = selected ? `${colors.brightCyan}▶${colors.reset}` : " ";
   const icon = choice.icon || "";
   const iconColumn = padDisplayWidth(icon, 2);
-  const iconColor = selected ? colors.brightCyan : choice.iconColor || "";
+  const iconColor = choice.iconColor || (selected ? colors.brightCyan : "");
   const styledIcon = iconColor ? `${iconColor}${iconColumn}${colors.reset}` : iconColumn;
   const name = selected ? `${colors.brightYellow}\x1b[1m${choice.name}\x1b[0m` : choice.name;
   const styledMeta = choice.meta
     ? `${choice.meta === "Folder" ? colors.brightBlue : choice.meta === "Project" ? colors.brightGreen : colors.brightCyan}${choice.meta}${colors.reset}`
     : "";
-  const metaWidth = getDisplayWidth(styledMeta);
-  const meta = styledMeta ? `${" ".repeat(Math.max(2, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  ${choice.name}`) - metaWidth - 8))}${styledMeta}` : "";
+  const recentLabel = choice.recent ? `${colors.gray}· Recent${colors.reset}` : "";
+  const metadata = [styledMeta, recentLabel].filter(Boolean).join("  ");
+  const metaWidth = getDisplayWidth(metadata);
+  const meta = metadata ? `${" ".repeat(Math.max(2, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  ${choice.name}`) - metaWidth - 8))}${metadata}` : "";
   return `${pointer}  ${styledIcon}  ${name}${meta}`;
 }
 

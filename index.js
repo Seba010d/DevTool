@@ -142,41 +142,49 @@ async function createProject() {
       {
         name: "Empty project",
         icon: "📦",
+        iconColor: colors.gray,
         value: "empty",
       },
       {
         name: "Node.js project",
         icon: "📦",
+        iconColor: colors.brightGreen,
         value: "node",
       },
       {
         name: "Node.js + TypeScript",
         icon: "📘",
+        iconColor: colors.brightBlue,
         value: "typescript",
       },
       {
         name: "Node.js + Express",
         icon: "📦",
+        iconColor: colors.brightPurple,
         value: "express",
       },
       {
         name: "Web",
         icon: "🌐",
+        iconColor: colors.brightCyan,
         value: "web",
       },
       {
         name: "Web + SCSS",
         icon: "🌐",
+        iconColor: colors.brightPurple,
         value: "web-scss",
       },
       {
         name: "JavaScript App",
         icon: "📜",
+        iconColor: colors.brightYellow,
         value: "javascript",
       },
       {
         name: "Boilerplate",
         icon: "📦",
+        iconColor: colors.brightCyan,
         value: "boilerplate",
       },
     ];

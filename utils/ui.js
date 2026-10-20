@@ -70,17 +70,18 @@ function drawFooter(text = "DevTool") {
   console.log("");
 }
 
-function success(message) {
+function drawStatus(kind, message) {
   console.log("");
-  console.log(`${colors.brightGreen}  ✓ ${message}${colors.reset}`);
+  const isSuccess = kind === "SUCCESS";
+  const color = isSuccess ? colors.brightGreen : colors.brightRed;
+  const symbol = isSuccess ? "✓" : "✕";
+  console.log(`${color}  ${symbol}  ${kind.padEnd(7)} ${message}${colors.reset}`);
   console.log("");
 }
 
-function error(message) {
-  console.log("");
-  console.log(`${colors.brightRed}  ✗ ${message}${colors.reset}`);
-  console.log("");
-}
+function success(message) { drawStatus("SUCCESS", message); }
+
+function error(message) { drawStatus("ERROR", message); }
 
 function info(message) {
   console.log(`${colors.gray}  ${message}${colors.reset}`);

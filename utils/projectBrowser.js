@@ -8,6 +8,11 @@ const projectActions = require("./projectActions");
 const { drawHeader, drawSection, info, error } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoiceList, moveSelection, isBackKey } = require("./menu");
+const { loadConfig } = require("./config");
+
+function getRecentProjectPaths() {
+  return new Set(loadConfig().recentProjects.map((projectPath) => path.resolve(projectPath)));
+}
 
 function loadProjectConfig(projectPath) {
   const configPath = path.join(projectPath, ".devtool.json");
@@ -84,10 +89,11 @@ function renderProjectList(currentPath, entries, selectedIndex) {
   clearScreen();
 
   drawHeader("DEVTOOL", `Projects · ${path.relative(process.env.HOME || "", currentPath) || currentPath}`);
+  const recentProjects = getRecentProjectPaths();
 
   renderChoiceList({
     section: `PROJECTS · ${entries.length} item${entries.length === 1 ? "" : "s"}`,
-    choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || (entry.type === "folder" ? "Folder" : "Project"), value: entry.path })),
+    choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || (entry.type === "folder" ? "Folder" : "Project"), recent: entry.type === "project" && recentProjects.has(path.resolve(entry.path)), value: entry.path })),
     selectedIndex,
     emptyMessage: "No projects or folders found.",
   });
@@ -153,10 +159,11 @@ async function searchProjects(startPath) {
     clearScreen();
 
     drawHeader("DEVTOOL", `Search · ${entries.length} result${entries.length === 1 ? "" : "s"}`);
+    const recentProjects = getRecentProjectPaths();
 
     renderChoiceList({
       section: `RESULTS · "${query}"`,
-      choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || "Project", value: entry.path })),
+      choices: entries.map((entry) => ({ name: entry.name, icon: entry.icon, meta: entry.projectType || "Project", recent: recentProjects.has(path.resolve(entry.path)), value: entry.path })),
       selectedIndex,
     });
 
