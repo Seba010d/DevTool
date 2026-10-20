@@ -4,13 +4,11 @@ const path = require("path");
 function createBoilerplateProject(projectPath) {
   const assetsPath = path.join(projectPath, "Assets");
   const cssPath = path.join(assetsPath, "Css");
-  const imagesPath = path.join(assetsPath, "Images");
   const jsPath = path.join(assetsPath, "JS");
   const modulesPath = path.join(jsPath, "modules");
   const scssPath = path.join(projectPath, "scss");
 
   fs.mkdirSync(cssPath, { recursive: true });
-  fs.mkdirSync(imagesPath, { recursive: true });
   fs.mkdirSync(modulesPath, { recursive: true });
   fs.mkdirSync(scssPath, { recursive: true });
 
@@ -26,13 +24,21 @@ function createBoilerplateProject(projectPath) {
     <script src="Assets/JS/index.js" type="module"></script>
   </head>
 
-  <body></body>
+  <body>
+    <main>
+      <h1>${path.basename(projectPath)}</h1>
+      <p>Your project is ready. Edit this page and the files in Assets.</p>
+    </main>
+  </body>
 </html>
 `;
 
-  const cssContent = "";
+  const cssContent = `:root {\n  font-family: system-ui, sans-serif;\n  color: #202124;\n  background: #f7f8fa;\n}\n\nbody { min-height: 100vh; margin: 0; }\nmain { max-width: 64rem; margin: 0 auto; padding: 2rem; }\n`;
 
-  const jsContent = `// Add your application code here.
+  const jsContent = `const heading = document.querySelector("h1");
+if (heading) {
+  console.log(heading.textContent + " is ready");
+}
 `;
 
   const localStorageContent = `const myDataName = "Data";
@@ -53,7 +59,24 @@ export function loadData() {
 }
 `;
 
-  const scssContent = `// @use "reset";
+  const scssContent = `@use "reset";
+
+:root {
+  font-family: system-ui, sans-serif;
+  color: #202124;
+  background: #f7f8fa;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+}
+
+main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
 `;
 
   const resetContent = `html,

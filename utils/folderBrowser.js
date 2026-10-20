@@ -1,4 +1,5 @@
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { input } = require("@inquirer/prompts");
 
@@ -9,6 +10,11 @@ const isProject = require("./projectDetector");
 
 async function chooseFolder(startPath) {
   let currentPath = startPath;
+  try {
+    if (!fs.statSync(currentPath).isDirectory()) currentPath = os.homedir();
+  } catch {
+    currentPath = os.homedir();
+  }
 
   enableKeyboard();
 

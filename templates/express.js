@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 
 function createExpressProject(projectPath) {
-  fs.mkdirSync(path.join(projectPath, "Assets"), { recursive: true });
   const projectName = path
     .basename(projectPath)
     .toLowerCase()
@@ -11,6 +10,7 @@ function createExpressProject(projectPath) {
   const packageJson = {
     name: projectName,
     version: "1.0.0",
+    private: true,
     main: "server.js",
     scripts: {
       start: "node server.js",
@@ -23,12 +23,12 @@ function createExpressProject(projectPath) {
   const serverContent = `const express = require("express");
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Hello from ${path.basename(projectPath)}!");
+  res.json({ message: "Hello from ${path.basename(projectPath)}!" });
 });
 
 app.get("/api", (req, res) => {

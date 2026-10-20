@@ -9,7 +9,7 @@ DevTool gives you one interactive place to browse your local development folders
 - **Browse projects** — navigate folders and select projects from an interactive terminal menu.
 - **Search projects** — press `/` in the project browser to search project names.
 - **Open projects** — open a selected project in Visual Studio Code, Terminal, or Finder.
-- **Create projects** — generate a project from one of the included templates, with a description before you choose.
+- **Create projects** — generate a project from one of the included templates.
 - **Import projects** — register an existing folder so it appears in the project browser.
 - **Configure locations** — choose your main projects directory and the location used when creating projects.
 - **Manage settings** — clear recent-project data or reset DevTool's settings.
@@ -56,20 +56,20 @@ node index.js create
 
 Choose **Create project** from the main menu, or run `node index.js create`. DevTool asks for a project name and location, then lets you select a template.
 
-In the location picker, choose **Create a new folder here** to add a subfolder. The template picker shows a short description of the selected starter.
+In the location picker, choose **Create a new folder here** to add a subfolder.
 
 Available templates:
 
 | Template | What it creates |
 | --- | --- |
-| Empty project | A clean starting folder |
-| Node.js project | A basic Node.js project |
-| Node.js + TypeScript | A strict TypeScript starter with `start` and `typecheck` scripts |
-| Node.js + Express | A Node.js project using Express |
-| Web | A basic web project |
-| Web + SCSS | A web project with SCSS setup |
-| JavaScript App | A JavaScript application starter |
-| Boilerplate | A general-purpose starter structure |
+| Empty project | Project metadata only |
+| Node.js project | `index.js`, `package.json` |
+| Node.js + TypeScript | `src/index.ts`, `tsconfig.json`, `package.json` |
+| Node.js + Express | `server.js`, `package.json` |
+| Web | `index.html`, `index.js`, `Assets/Css/style.css` |
+| Web + SCSS | Web files, `scss/style.scss`, Sass build/watch scripts |
+| JavaScript App | HTML and separate CSS/JS asset files |
+| Boilerplate | HTML, compiled CSS, SCSS, reset styles, and JS utility module |
 
 DevTool creates a `.devtool.json` file in generated projects to store project metadata.
 

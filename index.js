@@ -8,7 +8,7 @@ const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
-const { selectMenu, renderChoice, drawKeybindings } = require("./utils/menu");
+const { selectMenu } = require("./utils/menu");
 const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
 
 const createEmptyProject = require("./templates/empty");
@@ -37,6 +37,7 @@ async function getProjectName() {
   enableKeyboard();
 
   let value = "";
+  let validationMessage = "";
 
   try {
     while (true) {
@@ -48,6 +49,7 @@ async function getProjectName() {
       console.log("");
 
       console.log(`  📦 Project name: ${value}`);
+      if (validationMessage) console.log(`  ⚠ ${validationMessage}`);
       console.log("");
 
       console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
@@ -62,20 +64,28 @@ async function getProjectName() {
       }
 
       if (key.name === "return") {
-        if (!value.trim()) {
+        const projectName = value.trim();
+        if (!projectName) {
           continue;
         }
 
-        return value.trim();
+        if (projectName === "." || projectName === ".." || /[\\/\0]/.test(projectName)) {
+          validationMessage = "Use a folder name without slashes.";
+          continue;
+        }
+
+        return projectName;
       }
 
       if (key.name === "backspace" || key.name === "\x7f") {
         value = value.slice(0, -1);
+        validationMessage = "";
         continue;
       }
 
       if (typeof key.value === "string" && key.value.length === 1 && key.value >= " " && key.value !== "\x7f") {
         value += key.value;
+        validationMessage = "";
       }
     }
   } finally {
@@ -116,16 +126,6 @@ async function createProject() {
     return;
   }
 
-  const templateDescriptions = {
-    empty: "Creates an empty folder with DevTool project metadata.",
-    node: "Creates a runnable Node.js starter with package.json.",
-    typescript: "Creates a strict TypeScript Node.js starter with start and typecheck commands.",
-    express: "Creates a small Express server and API endpoint.",
-    web: "Creates an HTML, CSS, and JavaScript starter site.",
-    "web-scss": "Creates a website with Sass build setup.",
-    javascript: "Creates a browser JavaScript app with organized assets.",
-    boilerplate: "Creates a larger asset structure with SCSS and reset styles.",
-  };
   const templateChoices = [
       {
         name: "Empty project",
@@ -174,16 +174,6 @@ async function createProject() {
     subtitle: "Create a new project",
     section: "TEMPLATES",
     choices: templateChoices,
-    onRender: (selectedIndex) => {
-      console.clear();
-      drawHeader("DEVTOOL", "Create a new project");
-      console.log("  TEMPLATES");
-      console.log("");
-      templateChoices.forEach((choice, index) => console.log(renderChoice(choice, index === selectedIndex)));
-      console.log("");
-      console.log(`  ${templateDescriptions[templateChoices[selectedIndex].value]}`);
-      drawKeybindings();
-    },
   });
 
   if (templateResult.action === "back") {

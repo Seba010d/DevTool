@@ -2,14 +2,14 @@ const fs = require("fs");
 const path = require("path");
 
 function createJavaScriptProject(projectPath) {
+  const projectName = path.basename(projectPath);
+  const htmlName = projectName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
   const assetsPath = path.join(projectPath, "Assets");
   const cssPath = path.join(assetsPath, "Css");
   const jsPath = path.join(assetsPath, "JS");
-  const imagesPath = path.join(assetsPath, "Images");
 
   fs.mkdirSync(cssPath, { recursive: true });
   fs.mkdirSync(jsPath, { recursive: true });
-  fs.mkdirSync(imagesPath, { recursive: true });
 
   const htmlContent = `<!doctype html>
 <html lang="en">
@@ -20,7 +20,7 @@ function createJavaScriptProject(projectPath) {
       content="width=device-width, initial-scale=1.0"
     />
 
-    <title>${path.basename(projectPath)}</title>
+    <title>${htmlName}</title>
 
     <link rel="stylesheet" href="Assets/Css/style.css" />
 
@@ -32,7 +32,8 @@ function createJavaScriptProject(projectPath) {
 
   <body>
     <main>
-      <h1>${path.basename(projectPath)}</h1>
+      <h1>${htmlName}</h1>
+      <p>Your app is ready. Edit <code>Assets/JS/index.js</code> to get started.</p>
     </main>
   </body>
 </html>
@@ -43,7 +44,7 @@ function createJavaScriptProject(projectPath) {
 }
 `;
 
-  const jsContent = `console.log("${path.basename(projectPath)} ready");
+  const jsContent = `console.log(${JSON.stringify(`${projectName} is ready`)});
 `;
 
   fs.writeFileSync(path.join(projectPath, "index.html"), htmlContent);
