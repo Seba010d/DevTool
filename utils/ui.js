@@ -18,25 +18,13 @@ function padText(value, width) {
 
 function drawHeader(title, subtitle = "") {
   const width = getWidth();
-  const innerWidth = width - 4;
-
   console.clear();
-
   console.log("");
-  console.log(`${colors.gray}┌${"─".repeat(width - 2)}┐${colors.reset}`);
-
-  const titleLine = `  ${colors.brightCyan}${title}${colors.reset}`;
-
-  console.log(`${colors.gray}│${colors.reset}${padText(titleLine, width - 2)}${colors.gray}│${colors.reset}`);
-
+  console.log(`${colors.brightCyan}◆ ${title}${colors.reset}`);
   if (subtitle) {
-    const subtitleLine = `  ${colors.gray}${subtitle}${colors.reset}`;
-
-    console.log(`${colors.gray}│${colors.reset}${padText(subtitleLine, width - 2)}${colors.gray}│${colors.reset}`);
+    console.log(`${colors.gray}  ${subtitle}${colors.reset}`);
   }
-
-  console.log(`${colors.gray}└${"─".repeat(width - 2)}┘${colors.reset}`);
-
+  console.log(`${colors.cyan}${"─".repeat(Math.max(12, width - 2))}${colors.reset}`);
   console.log("");
 }
 

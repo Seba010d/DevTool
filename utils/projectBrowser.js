@@ -6,6 +6,7 @@ const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
 const { drawHeader, info } = require("./ui");
+const { colors } = require("./colors");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoice, getDisplayWidth, moveSelection, isBackKey } = require("./menu");
 
@@ -96,7 +97,7 @@ function renderEntry(entry, selected) {
   const lineWidth = getDisplayWidth(line);
   const spacing = Math.max(4, typeColumn - lineWidth);
 
-  return line + " ".repeat(spacing) + entry.projectType;
+  return line + " ".repeat(spacing) + `${colors.gray}${entry.projectType}${colors.reset}`;
 }
 
 function renderProjectList(currentPath, entries, selectedIndex) {
@@ -104,7 +105,7 @@ function renderProjectList(currentPath, entries, selectedIndex) {
 
   drawHeader("DEVTOOL", `Projects · ${path.relative(process.env.HOME || "", currentPath) || currentPath}`);
 
-  console.log("  PROJECTS");
+  console.log(`  PROJECTS  ·  ${entries.length} item${entries.length === 1 ? "" : "s"}`);
   console.log("");
 
   if (!entries.length) {
@@ -116,7 +117,7 @@ function renderProjectList(currentPath, entries, selectedIndex) {
     console.log(renderEntry(entry, index === selectedIndex));
   });
 
-  drawKeybindings();
+  drawKeybindings("↑↓ Move    Enter Open    / Search    Q Back");
 }
 
 async function searchProjects(startPath) {
@@ -185,7 +186,7 @@ async function searchProjects(startPath) {
       console.log(renderEntry(entry, index === selectedIndex));
     });
 
-    drawKeybindings();
+    drawKeybindings("↑↓ Move    Enter Open    Q Back");
 
     const key = await waitForKey();
 

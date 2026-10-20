@@ -1,10 +1,12 @@
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
-const { drawHeader } = require("./ui");
+const { drawHeader, getWidth } = require("./ui");
+const { colors } = require("./colors");
 
 const DEFAULT_KEYBINDINGS = "↑↓ Navigate    Enter Select    Q Back";
 
 function getDisplayWidth(value) {
   let width = 0;
+  value = value.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
 
   for (const char of value) {
     const code = char.codePointAt(0);
@@ -31,17 +33,18 @@ function padDisplayWidth(value, width) {
 
 function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   console.log("");
-  console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
+  console.log(`${colors.gray}${"─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90))}${colors.reset}`);
   console.log("");
-  console.log(`  ${bindings}`);
+  console.log(`  ${colors.gray}${bindings}${colors.reset}`);
 }
 
 function renderChoice(choice, selected) {
-  const pointer = selected ? "❯" : " ";
+  const pointer = selected ? `${colors.brightCyan}▶${colors.reset}` : " ";
   const icon = choice.icon || "";
   const iconColumn = padDisplayWidth(icon, 2);
-
-  return `${pointer}  ${iconColumn}  ${choice.name}`;
+  const styledIcon = selected ? `${colors.brightCyan}${iconColumn}${colors.reset}` : iconColumn;
+  const name = selected ? `\x1b[1m${choice.name}\x1b[0m` : choice.name;
+  return `${pointer}  ${styledIcon}  ${name}`;
 }
 
 function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, header, footer = DEFAULT_KEYBINDINGS }) {
@@ -54,12 +57,15 @@ function renderMenu({ title, subtitle, section, choices, selectedIndex = 0, head
   }
 
   if (section) {
-    console.log(`  ${section}`);
+    const position = choices.length ? `${selectedIndex + 1} / ${choices.length}` : "";
+    const gap = Math.max(2, getWidth() - section.length - position.length - 6);
+    console.log(`  ${colors.brightCyan}${section}${colors.reset}${" ".repeat(gap)}${colors.gray}${position}${colors.reset}`);
     console.log("");
   }
 
   choices.forEach((choice, index) => {
-    console.log(renderChoice(choice, index === selectedIndex));
+    const selected = index === selectedIndex;
+    console.log(`  ${renderChoice(choice, selected)}`);
   });
 
   drawKeybindings(footer);

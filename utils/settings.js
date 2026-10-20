@@ -8,7 +8,7 @@ const { drawHeader, success, info } = require("./ui");
 
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 
-const { drawKeybindings, renderMenu, moveSelection, isBackKey } = require("./menu");
+const { drawKeybindings, renderMenu, moveSelection, isBackKey, selectMenu } = require("./menu");
 
 async function pauseForKey() {
   drawKeybindings("Enter Continue    Q Back");
@@ -174,86 +174,17 @@ async function openSettings() {
 
       if (choice === "reset") {
         disableKeyboard();
-
-        clearScreen();
-
-        drawHeader("DEVTOOL / SETTINGS", "Reset settings");
-
-        console.log("  RESET SETTINGS");
-
-        console.log("");
-
-        console.log("  This will reset your saved");
-
-        console.log("  DevTool settings.");
-
-        console.log("");
-
-        const confirmation = await new Promise((resolve) => {
-          const choices = [
-            {
-              name: "Reset settings",
-              icon: "↩",
-              value: true,
-            },
-            {
-              name: "Cancel",
-              icon: "←",
-              value: false,
-            },
-          ];
-
-          let index = 0;
-
-          enableKeyboard();
-
-          const loop = async () => {
-            while (true) {
-              clearScreen();
-
-              drawHeader("DEVTOOL / SETTINGS", "Reset settings");
-
-              console.log("  RESET SETTINGS");
-
-              console.log("");
-
-              choices.forEach((item, itemIndex) => {
-                console.log(renderMenuChoice(item, itemIndex === index));
-              });
-
-              drawKeybindings();
-
-              const key = await waitForKey();
-
-              if (key.name === "up") {
-                index = moveSelection(index, "up", choices.length);
-
-                continue;
-              }
-
-              if (key.name === "down") {
-                index = moveSelection(index, "down", choices.length);
-
-                continue;
-              }
-
-              if (isBackKey(key)) {
-                resolve(false);
-                return;
-              }
-
-              if (key.name === "return") {
-                resolve(choices[index].value);
-
-                return;
-              }
-            }
-          };
-
-          loop();
+        const confirmation = await selectMenu({
+          title: "DEVTOOL / SETTINGS",
+          subtitle: "Reset settings",
+          section: "RESET SETTINGS",
+          choices: [
+            { name: "Cancel", icon: "←", value: false },
+            { name: "Reset settings", icon: "↩", value: true },
+          ],
         });
 
-        if (confirmation) {
+        if (confirmation.value) {
           const defaultConfig = {
             projectsLocation: config.projectsLocation,
             lastProjectLocation: config.projectsLocation,
@@ -279,14 +210,6 @@ async function openSettings() {
   } finally {
     disableKeyboard();
   }
-}
-
-function renderMenuChoice(choice, selected) {
-  const pointer = selected ? "❯" : " ";
-
-  const icon = (choice.icon || "").padEnd(3, " ");
-
-  return `${pointer}  ${icon} ${choice.name}`;
 }
 
 module.exports = openSettings;

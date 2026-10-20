@@ -10,6 +10,7 @@ const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
 const { selectMenu } = require("./utils/menu");
 const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
+const { colors } = require("./utils/colors");
 
 const createEmptyProject = require("./templates/empty");
 const createNodeProject = require("./templates/node");
@@ -58,21 +59,15 @@ async function getProjectName() {
 
   try {
     while (true) {
-      console.clear();
-
       drawHeader("DEVTOOL", "Create a new project");
 
-      console.log("  PROJECT SETUP");
+      console.log(`${colors.brightCyan}  PROJECT NAME${colors.reset}`);
       console.log("");
 
-      console.log(`  📦 Project name: ${value}`);
-      if (validationMessage) console.log(`  ⚠ ${validationMessage}`);
+      console.log(`  ${colors.gray}❯${colors.reset} ${value}${colors.brightCyan}▏${colors.reset}`);
+      if (validationMessage) console.log(`${colors.brightRed}  ⚠ ${validationMessage}${colors.reset}`);
       console.log("");
-
-      console.log("─".repeat(Math.min(Math.max(process.stdout.columns || 80, 60), 90)));
-
-      console.log("");
-      console.log("  Type name    Enter Continue    Esc Back");
+      drawFooter("Type a name    Enter Continue    Esc Cancel");
 
       const key = await waitForKey();
 
@@ -273,7 +268,7 @@ async function createProject() {
 
   drawHeader("DEVTOOL", "Project created");
 
-  console.log("  RESULT");
+  console.log(`${colors.brightCyan}  PROJECT READY${colors.reset}`);
   console.log("");
 
   success(`📦 Created ${projectName}`);

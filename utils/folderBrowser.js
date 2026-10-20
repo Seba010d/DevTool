@@ -4,9 +4,29 @@ const path = require("path");
 const { input } = require("@inquirer/prompts");
 
 const { drawHeader } = require("./ui");
-const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
+const { colors } = require("./colors");
+const { enableKeyboard, disableKeyboard, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoice, moveSelection, isBackKey } = require("./menu");
 const isProject = require("./projectDetector");
+
+function renderFolderList(currentPath, entries, choices, selectedIndex) {
+  const location = path.relative(process.env.HOME || "", currentPath) || currentPath;
+  drawHeader("DEVTOOL / LOCATION", location);
+  console.log(`${colors.brightCyan}  CHOOSE A FOLDER${colors.reset}`);
+  console.log(`${colors.gray}  📁 Folder    📦 Project${colors.reset}`);
+  console.log("");
+
+  if (!entries.length) {
+    console.log(`${colors.gray}  This folder is empty.${colors.reset}`);
+    console.log("");
+  }
+
+  choices.forEach((choice, index) => {
+    console.log(`  ${renderChoice(choice, index === selectedIndex)}`);
+  });
+
+  drawKeybindings("↑↓ Move    Enter Open or choose    Q Cancel");
+}
 
 async function chooseFolder(startPath) {
   let currentPath = startPath;
@@ -66,57 +86,21 @@ async function chooseFolder(startPath) {
         });
       }
 
-      clearScreen();
-
-      drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
-
-      console.log("  📁 SELECT FOLDER");
-      console.log("  📁 Folder    📦 Project");
-      console.log("");
-
-      if (!choices.length) {
-        console.log("  No folders found.");
-
-        console.log("");
-      }
-
       let selectedIndex = 0;
 
       while (true) {
-        choices.forEach((choice, index) => {
-          console.log(renderChoice(choice, index === selectedIndex));
-        });
-
-        drawKeybindings();
+        renderFolderList(currentPath, entries, choices, selectedIndex);
 
         const key = await waitForKey();
 
         if (key.name === "up") {
           selectedIndex = moveSelection(selectedIndex, "up", choices.length);
 
-          clearScreen();
-
-          drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
-
-          console.log("  📁 SELECT FOLDER");
-          console.log("  📁 Folder    📦 Project");
-
-          console.log("");
-
           continue;
         }
 
         if (key.name === "down") {
           selectedIndex = moveSelection(selectedIndex, "down", choices.length);
-
-          clearScreen();
-
-          drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
-
-          console.log("  📁 SELECT FOLDER");
-          console.log("  📁 Folder    📦 Project");
-
-          console.log("");
 
           continue;
         }
