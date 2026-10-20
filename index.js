@@ -8,7 +8,7 @@ const browseProjects = require("./utils/projectBrowser");
 const openSettings = require("./utils/settings");
 const { loadConfig, saveConfig } = require("./utils/config");
 const { drawHeader, drawFooter, success, error } = require("./utils/ui");
-const { selectMenu } = require("./utils/menu");
+const { selectMenu, renderChoice, drawKeybindings } = require("./utils/menu");
 const { enableKeyboard, disableKeyboard, waitForKey, isBackKey, exitProcess } = require("./utils/keyboard");
 
 const createEmptyProject = require("./templates/empty");
@@ -17,6 +17,7 @@ const createExpressProject = require("./templates/express");
 const createWebProject = require("./templates/web");
 const createJavaScriptProject = require("./templates/javascript");
 const createBoilerplateProject = require("./templates/boilerplate");
+const createTypeScriptProject = require("./templates/typescript");
 
 function getDanishDateTime() {
   return new Intl.DateTimeFormat("da-DK", {
@@ -115,11 +116,17 @@ async function createProject() {
     return;
   }
 
-  const templateResult = await selectMenu({
-    title: "DEVTOOL",
-    subtitle: "Create a new project",
-    section: "TEMPLATES",
-    choices: [
+  const templateDescriptions = {
+    empty: "Creates an empty folder with DevTool project metadata.",
+    node: "Creates a runnable Node.js starter with package.json.",
+    typescript: "Creates a strict TypeScript Node.js starter with start and typecheck commands.",
+    express: "Creates a small Express server and API endpoint.",
+    web: "Creates an HTML, CSS, and JavaScript starter site.",
+    "web-scss": "Creates a website with Sass build setup.",
+    javascript: "Creates a browser JavaScript app with organized assets.",
+    boilerplate: "Creates a larger asset structure with SCSS and reset styles.",
+  };
+  const templateChoices = [
       {
         name: "Empty project",
         icon: "📦",
@@ -129,6 +136,11 @@ async function createProject() {
         name: "Node.js project",
         icon: "📦",
         value: "node",
+      },
+      {
+        name: "Node.js + TypeScript",
+        icon: "📘",
+        value: "typescript",
       },
       {
         name: "Node.js + Express",
@@ -155,7 +167,23 @@ async function createProject() {
         icon: "📦",
         value: "boilerplate",
       },
-    ],
+    ];
+
+  const templateResult = await selectMenu({
+    title: "DEVTOOL",
+    subtitle: "Create a new project",
+    section: "TEMPLATES",
+    choices: templateChoices,
+    onRender: (selectedIndex) => {
+      console.clear();
+      drawHeader("DEVTOOL", "Create a new project");
+      console.log("  TEMPLATES");
+      console.log("");
+      templateChoices.forEach((choice, index) => console.log(renderChoice(choice, index === selectedIndex)));
+      console.log("");
+      console.log(`  ${templateDescriptions[templateChoices[selectedIndex].value]}`);
+      drawKeybindings();
+    },
   });
 
   if (templateResult.action === "back") {
@@ -175,6 +203,10 @@ async function createProject() {
 
   if (template === "node") {
     createNodeProject(projectPath);
+  }
+
+  if (template === "typescript") {
+    createTypeScriptProject(projectPath);
   }
 
   if (template === "express") {
@@ -200,6 +232,7 @@ async function createProject() {
   const projectTypes = {
     empty: "empty",
     node: "node",
+    typescript: "node",
     express: "node",
     web: "web",
     "web-scss": "web",
@@ -210,6 +243,7 @@ async function createProject() {
   const runCommands = {
     empty: null,
     node: "npm start",
+    typescript: "npm start",
     express: "npm start",
     web: null,
     "web-scss": "npm run build",
@@ -256,6 +290,48 @@ async function listProjects() {
   await browseProjects(projectsLocation);
 }
 
+async function importExistingProject() {
+  const { projectsLocation } = loadConfig();
+  const projectPath = await chooseFolder(projectsLocation);
+  if (!projectPath) return;
+
+  const metadataPath = path.join(projectPath, ".devtool.json");
+  if (fs.existsSync(metadataPath)) {
+    console.clear();
+    drawHeader("DEVTOOL", "Import project");
+    error("This folder is already registered as a DevTool project.");
+    enableKeyboard();
+    await waitForKey();
+    disableKeyboard();
+    return;
+  }
+
+  let packageJson = {};
+  try {
+    packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
+  } catch {}
+  const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+  const hasHtml = fs.existsSync(path.join(projectPath, "index.html")) || fs.existsSync(path.join(projectPath, "Index.html"));
+  const projectType = dependencies.express ? "node" : packageJson.name ? "node" : hasHtml ? "web" : "project";
+  const run = packageJson.scripts?.start ? "npm start" : packageJson.scripts?.dev ? "npm run dev" : null;
+  const metadata = {
+    name: path.basename(projectPath),
+    type: "project",
+    template: "imported",
+    projectType,
+    created: getDanishDateTime(),
+    run,
+  };
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2) + "\n");
+  console.clear();
+  drawHeader("DEVTOOL", "Project imported");
+  success(`Imported ${metadata.name}`);
+  console.log(`  📁 Location: ${projectPath}`);
+  enableKeyboard();
+  await waitForKey();
+  disableKeyboard();
+}
+
 async function main() {
   if (process.argv[2] === "create") {
     await createProject();
@@ -297,6 +373,11 @@ async function main() {
           value: "create",
         },
         {
+          name: "Import existing project",
+          icon: "📥",
+          value: "import",
+        },
+        {
           name: "Settings",
           icon: "⚙",
           value: "settings",
@@ -315,6 +396,10 @@ async function main() {
 
     if (answer.value === "create") {
       await createProject();
+    }
+
+    if (answer.value === "import") {
+      await importExistingProject();
     }
 
     if (answer.value === "list") {

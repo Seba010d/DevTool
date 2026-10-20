@@ -91,7 +91,7 @@ async function selectMenu({ title, subtitle, section, choices, selectedIndex = 0
   try {
     while (true) {
       if (onRender) {
-        onRender();
+        onRender(selectedIndex);
       } else {
         renderMenu({
           title,

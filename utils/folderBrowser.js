@@ -1,9 +1,11 @@
 const fs = require("fs");
 const path = require("path");
+const { input } = require("@inquirer/prompts");
 
 const { drawHeader } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoice, moveSelection, isBackKey } = require("./menu");
+const isProject = require("./projectDetector");
 
 async function chooseFolder(startPath) {
   let currentPath = startPath;
@@ -24,8 +26,8 @@ async function chooseFolder(startPath) {
         );
 
       const choices = entries.map((entry) => ({
-        name: entry.name,
-        icon: "📁",
+        name: `${entry.name}  ${isProject(path.join(currentPath, entry.name)) ? "(project)" : "(folder)"}`,
+        icon: isProject(path.join(currentPath, entry.name)) ? "📦" : "📁",
         value: {
           type: "folder",
           path: path.join(currentPath, entry.name),
@@ -39,6 +41,12 @@ async function chooseFolder(startPath) {
           type: "select",
           path: currentPath,
         },
+      });
+
+      choices.push({
+        name: "Create a new folder here",
+        icon: "＋",
+        value: { type: "create", path: currentPath },
       });
 
       if (currentPath !== path.parse(currentPath).root) {
@@ -57,6 +65,7 @@ async function chooseFolder(startPath) {
       drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
       console.log("  📁 SELECT FOLDER");
+      console.log("  📁 Folder    📦 Project");
       console.log("");
 
       if (!choices.length) {
@@ -84,6 +93,7 @@ async function chooseFolder(startPath) {
           drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
           console.log("  📁 SELECT FOLDER");
+          console.log("  📁 Folder    📦 Project");
 
           console.log("");
 
@@ -98,6 +108,7 @@ async function chooseFolder(startPath) {
           drawHeader("DEVTOOL / FOLDER", path.relative(process.env.HOME || "", currentPath) || currentPath);
 
           console.log("  📁 SELECT FOLDER");
+          console.log("  📁 Folder    📦 Project");
 
           console.log("");
 
@@ -113,6 +124,17 @@ async function chooseFolder(startPath) {
 
           if (selected.value.type === "select") {
             return selected.value.path;
+          }
+
+          if (selected.value.type === "create") {
+            disableKeyboard();
+            const folderName = (await input({ message: "New folder name:" })).trim();
+            if (folderName && folderName !== "." && folderName !== ".." && !folderName.includes(path.sep)) {
+              const newPath = path.join(currentPath, folderName);
+              if (!fs.existsSync(newPath)) fs.mkdirSync(newPath);
+            }
+            enableKeyboard();
+            break;
           }
 
           if (selected.value.type === "parent") {
