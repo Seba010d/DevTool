@@ -43,14 +43,21 @@ function drawHeader(title, subtitle = "") {
   const width = getWidth();
   const insideWidth = width - 4;
   const pageTitle = title.replace(/^DEVTOOL\s*\/?\s*/i, "") || subtitle || "Project launcher";
-  const headerText = truncateText(`◈  DEVTOOL  /  ${pageTitle.toUpperCase()}`, insideWidth);
   const top = `${colors.gray}╭${"─".repeat(width - 2)}╮${colors.reset}`;
   const bottom = `${colors.gray}╰${"─".repeat(width - 2)}╯${colors.reset}`;
+  const divider = `${colors.gray}├${"─".repeat(width - 2)}┤${colors.reset}`;
+  const brand = `◈  ${colors.brightCyan}\x1b[1mDEVTOOL${colors.reset}`;
+  const brandTag = width >= 60 ? `${colors.gray}PROJECT WORKSPACE${colors.reset}` : "";
+  const brandGap = Math.max(1, insideWidth - getDisplayWidth(brand) - getDisplayWidth(brandTag));
+  const brandLine = `${colors.gray}│${colors.reset} ${brand}${" ".repeat(brandGap)}${brandTag} ${colors.gray}│${colors.reset}`;
+  const pageLine = `${colors.gray}│${colors.reset} ${padText(`${colors.brightWhite || colors.white}\x1b[1m${truncateText(pageTitle.toUpperCase(), insideWidth)}${colors.reset}`, insideWidth)} ${colors.gray}│${colors.reset}`;
 
   console.clear();
   console.log("");
   console.log(top);
-  console.log(`${colors.gray}│${colors.reset} ${padText(`${colors.brightCyan}\x1b[1m${headerText}\x1b[0m`, insideWidth)} ${colors.gray}│${colors.reset}`);
+  console.log(brandLine);
+  console.log(divider);
+  console.log(pageLine);
 
   if (subtitle && pageTitle.toLowerCase() !== subtitle.toLowerCase()) {
     console.log(`${colors.gray}│${colors.reset} ${padText(`${colors.gray}${truncateText(subtitle, insideWidth)}${colors.reset}`, insideWidth)} ${colors.gray}│${colors.reset}`);
@@ -88,11 +95,39 @@ function drawFooter(text = "DevTool") {
 }
 
 function drawStatus(kind, message) {
+  const width = getWidth();
+  const innerWidth = width - 4;
   console.log("");
   const isSuccess = kind === "SUCCESS";
   const color = isSuccess ? colors.brightGreen : colors.brightRed;
   const symbol = isSuccess ? "✓" : "✕";
-  console.log(`${color}  ${symbol}  ${kind.padEnd(7)} ${message}${colors.reset}`);
+  const label = `${symbol}  ${kind}`;
+  const headerFill = "─".repeat(Math.max(1, width - getDisplayWidth(label) - 4));
+  console.log(`${color}╭─ ${label}${colors.gray}${headerFill}╮${colors.reset}`);
+
+  const lines = [];
+  let line = "";
+  for (const char of String(message)) {
+    if (char === "\n") {
+      lines.push(line);
+      line = "";
+      continue;
+    }
+    if (getDisplayWidth(line + char) > innerWidth) {
+      lines.push(line);
+      line = char.trim() ? char : "";
+      continue;
+    }
+    line += char;
+  }
+  if (line) lines.push(line);
+
+  for (const messageLine of lines) {
+    const visibleLine = truncateText(messageLine, innerWidth);
+    console.log(`${colors.gray}│${colors.reset} ${padText(`${color}${visibleLine}${colors.reset}`, innerWidth)} ${colors.gray}│${colors.reset}`);
+  }
+
+  console.log(`${color}╰${"─".repeat(width - 2)}╯${colors.reset}`);
   console.log("");
 }
 

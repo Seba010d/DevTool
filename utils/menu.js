@@ -33,7 +33,7 @@ function padDisplayWidth(value, width) {
 
 function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
   const keyNames = /^(↑↓|Enter|Return|Q|Esc|Escape|\/|Ctrl\+C|Any key|Press any key)(?=\s|$)/i;
-  const visibleBindings = bindings
+  const visibleParts = bindings
     .split(/\s{2,}/)
     .map((binding) => {
       const match = binding.match(keyNames);
@@ -41,12 +41,29 @@ function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
       const key = match[0];
       const label = binding.slice(key.length).trim();
       return `${colors.brightYellow}\x1b[1m${key}\x1b[0m${label ? ` ${colors.gray}${label}${colors.reset}` : ""}`;
-    })
-    .join(`   ${colors.gray}·${colors.reset}   `);
+    });
+  const separator = "   ·   ";
+  const maxLineWidth = Math.max(12, getWidth() - 4);
+  const bindingLines = [];
+  let line = "";
+  let lineWidth = 0;
+  for (const part of visibleParts) {
+    const partWidth = getDisplayWidth(part);
+    const extraWidth = line ? getDisplayWidth(separator) + partWidth : partWidth;
+    if (line && lineWidth + extraWidth > maxLineWidth) {
+      bindingLines.push(line);
+      line = part;
+      lineWidth = partWidth;
+    } else {
+      line += `${line ? `${colors.gray}${separator}${colors.reset}` : ""}${part}`;
+      lineWidth += extraWidth;
+    }
+  }
+  if (line) bindingLines.push(line);
 
   console.log("");
   console.log(`  ${colors.gray}${"─".repeat(Math.max(1, getWidth() - 4))}${colors.reset}`);
-  console.log(`  ${visibleBindings}`);
+  bindingLines.forEach((bindingLine) => console.log(`  ${bindingLine}`));
 }
 
 function renderChoice(choice, selected) {
@@ -74,10 +91,10 @@ function renderChoiceList({ section, choices, selectedIndex = 0, emptyMessage = 
   const title = section || "OPTIONS";
   const count = choices.length ? `${selectedIndex + 1} / ${choices.length}` : "0 items";
   const visibleTitle = truncateText(title, Math.max(1, width - getDisplayWidth(count) - 10));
-  const topLabel = `╭─ ${visibleTitle} ${"─".repeat(Math.max(1, width - getDisplayWidth(visibleTitle) - getDisplayWidth(count) - 7))} ${count}─╮`;
-  console.log(`${colors.gray}${topLabel}${colors.reset}`);
+  const topFill = "─".repeat(Math.max(1, width - getDisplayWidth(visibleTitle) - getDisplayWidth(count) - 7));
+  console.log(`${colors.gray}╭─ ${colors.brightCyan}\x1b[1m${visibleTitle}${colors.reset}${colors.gray} ${topFill} ${colors.brightYellow}${count}${colors.gray}─╮${colors.reset}`);
 
-  const extraRows = Math.max(0, (process.stdout.rows || 24) - choices.length - 11);
+  const extraRows = Math.max(0, (process.stdout.rows || 24) - choices.length - 13);
   const topPadding = Math.floor(extraRows / 2);
   const bottomPadding = extraRows - topPadding;
   const blankRow = `${colors.gray}│${colors.reset}${" ".repeat(width - 2)}${colors.gray}│${colors.reset}`;
