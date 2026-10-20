@@ -10,7 +10,7 @@ DevTool gives you one interactive place to browse your local development folders
 - **Search projects** — press `/` in the project browser to search project names.
 - **Open projects** — open a selected project in Visual Studio Code, Terminal, or Finder.
 - **Create projects** — generate a project from one of the included templates.
-- **Import projects** — register an existing folder so it appears in the project browser.
+- **Import projects** — register an existing folder, with a warning if a matching project is already registered.
 - **Configure locations** — choose your main projects directory and the location used when creating projects.
 - **Manage settings** — clear recent-project data or reset DevTool's settings.
 - **Terminal UI** — use keyboard navigation without having to remember long folder paths.

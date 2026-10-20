@@ -18,6 +18,23 @@ const createWebProject = require("./templates/web");
 const createJavaScriptProject = require("./templates/javascript");
 const createBoilerplateProject = require("./templates/boilerplate");
 const createTypeScriptProject = require("./templates/typescript");
+const scanProjects = require("./utils/projectScanner");
+
+function readJsonFile(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function projectIdentities(projectPath) {
+  const metadata = readJsonFile(path.join(projectPath, ".devtool.json"));
+  const packageJson = readJsonFile(path.join(projectPath, "package.json"));
+  return [metadata.name, packageJson.name, path.basename(projectPath)]
+    .filter((name) => typeof name === "string" && name.trim())
+    .map((name) => name.trim().toLowerCase());
+}
 
 function getDanishDateTime() {
   return new Intl.DateTimeFormat("da-DK", {
@@ -296,10 +313,29 @@ async function importExistingProject() {
     return;
   }
 
-  let packageJson = {};
-  try {
-    packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, "package.json"), "utf8"));
-  } catch {}
+  const packageJson = readJsonFile(path.join(projectPath, "package.json"));
+  const candidateIdentities = new Set(projectIdentities(projectPath));
+  const duplicates = scanProjects(projectsLocation)
+    .filter((existingPath) => path.resolve(existingPath) !== path.resolve(projectPath))
+    .filter((existingPath) => projectIdentities(existingPath).some((identity) => candidateIdentities.has(identity)));
+
+  if (duplicates.length) {
+    const duplicateList = duplicates.map((duplicatePath) => `  • ${duplicatePath}`).join("\n");
+    console.clear();
+    drawHeader("DEVTOOL", "Possible duplicate project");
+    console.log(`  A project with a matching name or package name is already registered:\n\n${duplicateList}\n`);
+    const decision = await selectMenu({
+      title: "DEVTOOL",
+      subtitle: "Possible duplicate project",
+      section: "IMPORT THIS FOLDER ANYWAY?",
+      choices: [
+        { name: "Cancel import", icon: "←", value: "cancel" },
+        { name: "Import anyway", icon: "＋", value: "import" },
+      ],
+    });
+    if (decision.action === "back" || decision.value !== "import") return;
+  }
+
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
   const hasHtml = fs.existsSync(path.join(projectPath, "index.html")) || fs.existsSync(path.join(projectPath, "Index.html"));
   const projectType = dependencies.express ? "node" : packageJson.name ? "node" : hasHtml ? "web" : "project";
