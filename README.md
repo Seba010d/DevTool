@@ -8,12 +8,14 @@ DevTool gives you one interactive place to browse your local development folders
 
 - **Browse projects** — navigate folders and select projects from an interactive terminal menu.
 - **Search projects** — press `/` in the project browser to search project names.
-- **Open projects** — open a selected project in Visual Studio Code, Terminal, or Finder.
+- **Recent projects** — see a subtle marker beside projects you have opened recently.
+- **Open projects** — open a selected project in Visual Studio Code, Ghostty, or Finder.
 - **Create projects** — generate a project from one of the included templates.
 - **Import projects** — register an existing folder, with a warning if a matching project is already registered.
+- **Manage projects** — view project information, rename, move, run, install dependencies, or delete a project.
 - **Configure locations** — choose your main projects directory and the location used when creating projects.
 - **Manage settings** — clear recent-project data or reset DevTool's settings.
-- **Terminal UI** — use keyboard navigation without having to remember long folder paths.
+- **Responsive terminal UI** — menus adapt to terminal width and height, with colored templates, key hints, and consistent success and error messages.
 
 ## Requirements
 
@@ -39,7 +41,7 @@ Start the interactive launcher:
 npm start
 ```
 
-The main menu includes **Projects**, **Create project**, **Settings**, and **Quit**.
+The main menu includes **Projects**, **Create project**, **Import existing project**, **Settings**, and **Quit**.
 
 You can also use the command-line interface directly:
 
@@ -56,7 +58,7 @@ node index.js create
 
 Choose **Create project** from the main menu, or run `node index.js create`. DevTool asks for a project name and location, then lets you select a template.
 
-In the location picker, choose **Create a new folder here** to add a subfolder.
+In the location picker, choose **Create a new folder here** to add a subfolder. The picker distinguishes folders from registered projects and marks folder actions with symbols.
 
 Available templates:
 
