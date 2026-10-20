@@ -12,7 +12,13 @@ function runProject(projectPath) {
     return;
   }
 
-  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  let packageJson;
+  try {
+    packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  } catch (errorObject) {
+    error(`Could not read package.json: ${errorObject.message}`);
+    return;
+  }
 
   let devtoolConfig = {};
 

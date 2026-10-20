@@ -5,7 +5,7 @@ const { input } = require("@inquirer/prompts");
 const isProject = require("./projectDetector");
 const scanProjects = require("./projectScanner");
 const projectActions = require("./projectActions");
-const { drawHeader, info } = require("./ui");
+const { drawHeader, info, error } = require("./ui");
 const { colors } = require("./colors");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderChoice, getDisplayWidth, moveSelection, isBackKey } = require("./menu");
@@ -225,7 +225,17 @@ async function browseProjects(startPath) {
 
   try {
     while (true) {
-      const entries = getEntries(currentPath);
+      let entries;
+      try {
+        entries = getEntries(currentPath);
+      } catch (errorObject) {
+        clearScreen();
+        drawHeader("DEVTOOL", "Projects unavailable");
+        error(`Could not read ${currentPath}: ${errorObject.message}`);
+        drawKeybindings("Press any key to return");
+        await waitForKey();
+        return;
+      }
 
       let selectedIndex = 0;
 

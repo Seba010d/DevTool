@@ -5,7 +5,7 @@ const { execFile, spawn } = require("child_process");
 
 const chooseFolder = require("./folderBrowser");
 const runProject = require("./projectRunner");
-const { addRecentProject, loadConfig } = require("./config");
+const { addRecentProject, loadConfig, updateRecentProject } = require("./config");
 const { drawHeader, success, error } = require("./ui");
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
 const { drawKeybindings, renderMenu, moveSelection, isBackKey } = require("./menu");
@@ -221,11 +221,18 @@ async function runMenu(projectPath) {
           stdio: "inherit",
         });
 
-        await new Promise((resolve) => {
-          child.on("close", resolve);
+        const installResult = await new Promise((resolve) => {
+          child.once("error", (errorObject) => resolve({ error: errorObject }));
+          child.once("close", (code, signal) => resolve({ code, signal }));
         });
 
-        success("Dependencies installed.");
+        if (installResult.error) {
+          error(`Could not start npm: ${installResult.error.message}`);
+        } else if (installResult.code === 0) {
+          success("Dependencies installed.");
+        } else {
+          error(`npm install failed${installResult.code == null ? ` (${installResult.signal || "unknown error"})` : ` with exit code ${installResult.code}`}.`);
+        }
 
         await input({
           message: "Press Enter to continue",
@@ -288,6 +295,13 @@ async function renameProject(projectPath) {
     return projectPath;
   }
 
+  if (newName === "." || newName === ".." || /[\\/\0]/.test(newName)) {
+    error("Use a project name without slashes.");
+    await input({ message: "Press Enter to continue" });
+    enableKeyboard();
+    return projectPath;
+  }
+
   const newPath = path.join(path.dirname(projectPath), newName);
 
   if (fs.existsSync(newPath)) {
@@ -303,6 +317,7 @@ async function renameProject(projectPath) {
   }
 
   fs.renameSync(projectPath, newPath);
+  updateRecentProject(projectPath, newPath);
 
   const configPath = path.join(newPath, ".devtool.json");
 
@@ -314,6 +329,15 @@ async function renameProject(projectPath) {
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
     }
+  }
+
+  const packagePath = path.join(newPath, "package.json");
+  if (fs.existsSync(packagePath)) {
+    try {
+      const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+      packageJson.name = newName.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "project";
+      fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + "\n");
+    } catch {}
   }
 
   success(`Renamed ${oldName} to ${newName}.`);
@@ -358,6 +382,7 @@ async function moveProject(projectPath) {
   }
 
   fs.renameSync(projectPath, newPath);
+  updateRecentProject(projectPath, newPath);
 
   success(`Moved ${path.basename(projectPath)}.`);
 

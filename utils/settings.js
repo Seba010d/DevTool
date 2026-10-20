@@ -1,6 +1,6 @@
 const { input } = require("@inquirer/prompts");
 
-const { loadConfig, saveConfig } = require("./config");
+const { loadConfig, saveConfig, resetConfig } = require("./config");
 
 const chooseFolder = require("./folderBrowser");
 
@@ -185,13 +185,7 @@ async function openSettings() {
         });
 
         if (confirmation.value) {
-          const defaultConfig = {
-            projectsLocation: config.projectsLocation,
-            lastProjectLocation: config.projectsLocation,
-            recentProjects: [],
-          };
-
-          saveConfig(defaultConfig);
+          resetConfig();
 
           clearScreen();
 

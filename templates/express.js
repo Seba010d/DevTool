@@ -2,10 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 function createExpressProject(projectPath) {
-  const projectName = path
-    .basename(projectPath)
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-");
+  const displayName = path.basename(projectPath);
+  const projectName = displayName.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "express-project";
 
   const packageJson = {
     name: projectName,
@@ -28,7 +26,7 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from ${path.basename(projectPath)}!" });
+  res.json({ message: "Hello from " + ${JSON.stringify(displayName)} + "!" });
 });
 
 app.get("/api", (req, res) => {

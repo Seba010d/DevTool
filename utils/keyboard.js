@@ -65,10 +65,7 @@ function waitForKey() {
       }
 
       if (buffer === "\x03") {
-        finish({
-          name: "ctrl+c",
-          value: "\x03",
-        });
+        exitProcess(130);
         return;
       }
 
