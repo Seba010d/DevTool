@@ -8,7 +8,6 @@ DevTool gives you one interactive place to browse your local development folders
 
 - **Browse projects** — navigate folders and select projects from an interactive terminal menu.
 - **Search projects** — press `/` in the project browser to search project names.
-- **Recent projects** — see a subtle marker beside projects you have opened recently.
 - **Open projects** — open a selected project in Visual Studio Code, Ghostty, or Finder.
 - **Create projects** — generate a project from one of the included templates.
 - **Import projects** — register an existing folder, with a warning if a matching project is already registered.

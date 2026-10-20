@@ -73,14 +73,13 @@ function renderChoice(choice, selected) {
   const iconColor = choice.iconColor || (selected ? colors.brightCyan : "");
   const styledIcon = iconColor ? `${iconColor}${iconColumn}${colors.reset}` : iconColumn;
   const showMetadata = getWidth() >= 54;
-  const availableNameWidth = Math.max(1, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  `) - (showMetadata && (choice.meta || choice.recent) ? Math.max(12, Math.floor(getWidth() * 0.28)) : 3));
+  const availableNameWidth = Math.max(1, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  `) - (showMetadata && choice.meta ? Math.max(12, Math.floor(getWidth() * 0.28)) : 3));
   const visibleName = truncateText(choice.name, availableNameWidth);
   const name = selected ? `${colors.brightYellow}\x1b[1m${visibleName}\x1b[0m` : visibleName;
   const styledMeta = showMetadata && choice.meta
     ? `${choice.meta === "Folder" ? colors.brightBlue : choice.meta === "Project" ? colors.brightGreen : colors.brightCyan}${choice.meta}${colors.reset}`
     : "";
-  const recentLabel = showMetadata && choice.recent ? `${colors.gray}· Recent${colors.reset}` : "";
-  const metadata = [styledMeta, recentLabel].filter(Boolean).join("  ");
+  const metadata = styledMeta;
   const metaWidth = getDisplayWidth(metadata);
   const meta = metadata ? `${" ".repeat(Math.max(2, getWidth() - 4 - getDisplayWidth(`${pointer}  ${iconColumn}  ${visibleName}`) - metaWidth))}${metadata}` : "";
   return `${pointer}  ${styledIcon}  ${name}${meta}`;
