@@ -1,7 +1,7 @@
 const { colors } = require("./colors");
 
 function getWidth() {
-  return Math.min(Math.max(process.stdout.columns || 80, 50), 100);
+  return Math.max(process.stdout.columns || 80, 20);
 }
 
 function stripAnsi(value) {
@@ -23,11 +23,27 @@ function padText(value, width) {
   return value + " ".repeat(Math.max(0, width - getDisplayWidth(value)));
 }
 
+function truncateText(value, width) {
+  if (getDisplayWidth(value) <= width) return value;
+  if (width <= 1) return "…";
+
+  let result = "";
+  let visibleWidth = 0;
+  for (const char of value) {
+    const charWidth = getDisplayWidth(char);
+    if (visibleWidth + charWidth > width - 1) break;
+    result += char;
+    visibleWidth += charWidth;
+  }
+
+  return `${result}…`;
+}
+
 function drawHeader(title, subtitle = "") {
   const width = getWidth();
   const insideWidth = width - 4;
   const pageTitle = title.replace(/^DEVTOOL\s*\/?\s*/i, "") || subtitle || "Project launcher";
-  const headerText = `◈  DEVTOOL  /  ${pageTitle.toUpperCase()}`;
+  const headerText = truncateText(`◈  DEVTOOL  /  ${pageTitle.toUpperCase()}`, insideWidth);
   const top = `${colors.gray}╭${"─".repeat(width - 2)}╮${colors.reset}`;
   const bottom = `${colors.gray}╰${"─".repeat(width - 2)}╯${colors.reset}`;
 
@@ -37,7 +53,7 @@ function drawHeader(title, subtitle = "") {
   console.log(`${colors.gray}│${colors.reset} ${padText(`${colors.brightCyan}\x1b[1m${headerText}\x1b[0m`, insideWidth)} ${colors.gray}│${colors.reset}`);
 
   if (subtitle && pageTitle.toLowerCase() !== subtitle.toLowerCase()) {
-    console.log(`${colors.gray}│${colors.reset} ${padText(`${colors.gray}${subtitle}${colors.reset}`, insideWidth)} ${colors.gray}│${colors.reset}`);
+    console.log(`${colors.gray}│${colors.reset} ${padText(`${colors.gray}${truncateText(subtitle, insideWidth)}${colors.reset}`, insideWidth)} ${colors.gray}│${colors.reset}`);
   }
 
   console.log(bottom);
@@ -60,8 +76,9 @@ function drawDivider() {
 
 function drawSection(title) {
   const width = getWidth();
-  const lineLength = Math.max(2, width - getDisplayWidth(title) - 8);
-  console.log(`${colors.gray}╭─ ${colors.brightCyan}${title}${colors.gray} ${"─".repeat(lineLength)}╮${colors.reset}`);
+  const visibleTitle = truncateText(title, width - 8);
+  const lineLength = Math.max(1, width - getDisplayWidth(visibleTitle) - 5);
+  console.log(`${colors.gray}╭─ ${colors.brightCyan}${visibleTitle}${colors.gray} ${"─".repeat(lineLength)}╮${colors.reset}`);
 }
 
 function drawFooter(text = "DevTool") {
@@ -87,4 +104,4 @@ function info(message) {
   console.log(`${colors.gray}  ${message}${colors.reset}`);
 }
 
-module.exports = { getWidth, getDisplayWidth, padText, drawHeader, drawProjectRow, drawDivider, drawSection, drawFooter, success, error, info };
+module.exports = { getWidth, getDisplayWidth, padText, truncateText, drawHeader, drawProjectRow, drawDivider, drawSection, drawFooter, success, error, info };

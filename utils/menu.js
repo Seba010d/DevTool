@@ -1,5 +1,5 @@
 const { enableKeyboard, disableKeyboard, clearScreen, waitForKey } = require("./keyboard");
-const { drawHeader, getWidth } = require("./ui");
+const { drawHeader, getWidth, truncateText } = require("./ui");
 const { colors } = require("./colors");
 
 const DEFAULT_KEYBINDINGS = "↑↓ Navigate    Enter Select    Q Back";
@@ -45,7 +45,7 @@ function drawKeybindings(bindings = DEFAULT_KEYBINDINGS) {
     .join(`   ${colors.gray}·${colors.reset}   `);
 
   console.log("");
-  console.log(`  ${colors.gray}${"─".repeat(Math.min(Math.max(process.stdout.columns || 80, 50), 100))}${colors.reset}`);
+  console.log(`  ${colors.gray}${"─".repeat(Math.max(1, getWidth() - 4))}${colors.reset}`);
   console.log(`  ${visibleBindings}`);
 }
 
@@ -55,34 +55,47 @@ function renderChoice(choice, selected) {
   const iconColumn = padDisplayWidth(icon, 2);
   const iconColor = choice.iconColor || (selected ? colors.brightCyan : "");
   const styledIcon = iconColor ? `${iconColor}${iconColumn}${colors.reset}` : iconColumn;
-  const name = selected ? `${colors.brightYellow}\x1b[1m${choice.name}\x1b[0m` : choice.name;
-  const styledMeta = choice.meta
+  const showMetadata = getWidth() >= 54;
+  const availableNameWidth = Math.max(1, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  `) - (showMetadata && (choice.meta || choice.recent) ? Math.max(12, Math.floor(getWidth() * 0.28)) : 3));
+  const visibleName = truncateText(choice.name, availableNameWidth);
+  const name = selected ? `${colors.brightYellow}\x1b[1m${visibleName}\x1b[0m` : visibleName;
+  const styledMeta = showMetadata && choice.meta
     ? `${choice.meta === "Folder" ? colors.brightBlue : choice.meta === "Project" ? colors.brightGreen : colors.brightCyan}${choice.meta}${colors.reset}`
     : "";
-  const recentLabel = choice.recent ? `${colors.gray}· Recent${colors.reset}` : "";
+  const recentLabel = showMetadata && choice.recent ? `${colors.gray}· Recent${colors.reset}` : "";
   const metadata = [styledMeta, recentLabel].filter(Boolean).join("  ");
   const metaWidth = getDisplayWidth(metadata);
-  const meta = metadata ? `${" ".repeat(Math.max(2, getWidth() - getDisplayWidth(`${pointer}  ${iconColumn}  ${choice.name}`) - metaWidth - 8))}${metadata}` : "";
+  const meta = metadata ? `${" ".repeat(Math.max(2, getWidth() - 4 - getDisplayWidth(`${pointer}  ${iconColumn}  ${visibleName}`) - metaWidth))}${metadata}` : "";
   return `${pointer}  ${styledIcon}  ${name}${meta}`;
 }
 
 function renderChoiceList({ section, choices, selectedIndex = 0, emptyMessage = "No items to show." }) {
-  const width = Math.min(Math.max(process.stdout.columns || 80, 50), 100);
+  const width = getWidth();
   const title = section || "OPTIONS";
   const count = choices.length ? `${selectedIndex + 1} / ${choices.length}` : "0 items";
-  const topLabel = `╭─ ${title} ${"─".repeat(Math.max(1, width - getDisplayWidth(title) - getDisplayWidth(count) - 10))} ${count}─╮`;
+  const visibleTitle = truncateText(title, Math.max(1, width - getDisplayWidth(count) - 10));
+  const topLabel = `╭─ ${visibleTitle} ${"─".repeat(Math.max(1, width - getDisplayWidth(visibleTitle) - getDisplayWidth(count) - 7))} ${count}─╮`;
   console.log(`${colors.gray}${topLabel}${colors.reset}`);
 
+  const extraRows = Math.max(0, (process.stdout.rows || 24) - choices.length - 11);
+  const topPadding = Math.floor(extraRows / 2);
+  const bottomPadding = extraRows - topPadding;
+  const blankRow = `${colors.gray}│${colors.reset}${" ".repeat(width - 2)}${colors.gray}│${colors.reset}`;
+  for (let row = 0; row < topPadding; row += 1) console.log(blankRow);
+
   if (!choices.length) {
-    console.log(`${colors.gray}│${colors.reset}  ${emptyMessage}${" ".repeat(Math.max(0, width - getDisplayWidth(emptyMessage) - 8))}${colors.gray}│${colors.reset}`);
+    const visibleMessage = truncateText(emptyMessage, width - 4);
+    console.log(`${colors.gray}│${colors.reset} ${visibleMessage}${" ".repeat(Math.max(0, width - getDisplayWidth(visibleMessage) - 3))}${colors.gray}│${colors.reset}`);
   } else {
     choices.forEach((choice, index) => {
       const rendered = renderChoice(choice, index === selectedIndex);
       const innerWidth = width - 4;
       const content = getDisplayWidth(rendered) > innerWidth ? rendered : `${rendered}${" ".repeat(innerWidth - getDisplayWidth(rendered))}`;
-      console.log(`${colors.gray}│${colors.reset}  ${content}  ${colors.gray}│${colors.reset}`);
+      console.log(`${colors.gray}│${colors.reset} ${content} ${colors.gray}│${colors.reset}`);
     });
   }
+
+  for (let row = 0; row < bottomPadding; row += 1) console.log(blankRow);
 
   console.log(`${colors.gray}╰${"─".repeat(width - 2)}╯${colors.reset}`);
 }
