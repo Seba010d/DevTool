@@ -1,6 +1,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { themes, applyTheme } = require("./colors");
 
 const userConfigPath = path.join(os.homedir(), ".config", "devtool", "config.json");
 
@@ -35,6 +36,7 @@ function getDefaultConfig() {
     projectsLocation,
     lastProjectLocation: projectsLocation,
     recentProjects: [],
+    theme: "ocean",
   };
 }
 
@@ -52,6 +54,8 @@ function loadConfig() {
   const projectsLocation = expandHome(config.projectsLocation) || getDefaultProjectLocation();
 
   const lastProjectLocation = expandHome(config.lastProjectLocation) || projectsLocation;
+  const theme = Object.prototype.hasOwnProperty.call(themes, config.theme) ? config.theme : "ocean";
+  applyTheme(theme);
 
   return {
     ...getDefaultConfig(),
@@ -59,6 +63,7 @@ function loadConfig() {
     projectsLocation,
     lastProjectLocation,
     recentProjects: Array.isArray(config.recentProjects) ? config.recentProjects : [],
+    theme,
   };
 }
 
@@ -70,12 +75,15 @@ function saveConfig(config) {
   const projectsLocation = expandHome(config.projectsLocation) || getDefaultProjectLocation();
 
   const lastProjectLocation = expandHome(config.lastProjectLocation) || projectsLocation;
+  const theme = Object.prototype.hasOwnProperty.call(themes, config.theme) ? config.theme : "ocean";
+  applyTheme(theme);
 
   const savedConfig = {
     ...config,
     projectsLocation,
     lastProjectLocation,
     recentProjects: Array.isArray(config.recentProjects) ? config.recentProjects : [],
+    theme,
   };
 
   fs.writeFileSync(userConfigPath, JSON.stringify(savedConfig, null, 2) + "\n");

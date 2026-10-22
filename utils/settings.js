@@ -1,6 +1,7 @@
 const { input } = require("@inquirer/prompts");
 
 const { loadConfig, saveConfig, resetConfig } = require("./config");
+const { themes, applyTheme } = require("./colors");
 
 const chooseFolder = require("./folderBrowser");
 
@@ -17,6 +18,7 @@ async function pauseForKey() {
 }
 
 async function openSettings() {
+  const initialConfig = loadConfig();
   const choices = [
     {
       name: "Projects location",
@@ -27,6 +29,12 @@ async function openSettings() {
       name: "Last project location",
       icon: "🕘",
       value: "last",
+    },
+    {
+      name: "Color theme",
+      icon: "🎨",
+      meta: themes[initialConfig.theme]?.name || "Ocean",
+      value: "theme",
     },
     {
       name: "Clear recent projects",
@@ -147,6 +155,36 @@ async function openSettings() {
           await input({
             message: "Press Enter to continue",
           });
+        }
+
+        enableKeyboard();
+      }
+
+      if (choice === "theme") {
+        disableKeyboard();
+
+        const themeResult = await selectMenu({
+          title: "DEVTOOL / SETTINGS",
+          subtitle: "Color theme",
+          section: "CHOOSE A THEME",
+          choices: Object.entries(themes).map(([value, theme]) => ({
+            name: theme.name,
+            icon: value === "ocean" ? "🌊" : value === "forest" ? "🌲" : value === "sunset" ? "🌅" : "◐",
+            meta: value === config.theme ? "Current" : "",
+            value,
+          })),
+        });
+
+        if (themeResult.action !== "back" && themeResult.value) {
+          config.theme = themeResult.value;
+          applyTheme(config.theme);
+          saveConfig(config);
+          choices.find((item) => item.value === "theme").meta = themes[config.theme].name;
+
+          clearScreen();
+          drawHeader("DEVTOOL / SETTINGS", "Color theme");
+          success(`Color theme changed to ${themes[config.theme].name}.`);
+          await input({ message: "Press Enter to continue" });
         }
 
         enableKeyboard();

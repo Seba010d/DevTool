@@ -362,6 +362,8 @@ async function importExistingProject() {
 }
 
 async function main() {
+  loadConfig();
+
   if (process.argv[2] === "create") {
     await createProject();
     return;
